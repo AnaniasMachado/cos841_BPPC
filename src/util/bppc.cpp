@@ -16,6 +16,20 @@ void BPPCInstance::print() const {
     }
 }
 
+void BPPCInstance::printStatistics() const {
+    // Number of edges in the conflict graph
+    int edge_count = 0;
+    for (int i = 1; i <= N; i++) {
+        edge_count += conflicts[i].size();
+    }
+    edge_count /= 2; // Each edge counted twice
+
+    std::cout << "Instance statistics:\n";
+    std::cout << "Number of items (N): " << N << "\n";
+    std::cout << "Bin capacity (C): " << C << "\n";
+    std::cout << "Number of conflicts (|E|): " << edge_count << "\n";
+}
+
 BPPCInstance readInstance(const string& filename) {
     ifstream file(filename);
     if (!file) {

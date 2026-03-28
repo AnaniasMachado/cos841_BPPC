@@ -12,9 +12,10 @@ struct BPPCInstance {
     std::vector<std::unordered_set<int>> conflicts;
 
     void print() const;
+
+    void printStatistics() const;
 };
 
-// Function declaration
 BPPCInstance readInstance(const std::string& filename);
 
 #endif
