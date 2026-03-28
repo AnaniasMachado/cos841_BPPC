@@ -7,7 +7,7 @@
 
 class QRVND {
 private:
-    BPPCSolution& sol;
+    BPPCSolution* sol;
     LocalSearch ls;
 
     int K1,K2,K3;
@@ -19,6 +19,7 @@ private:
     std::vector<std::vector<double>> Q;
 
     std::mt19937 rng;
+    std::uniform_real_distribution<double> dist01;
 
     int selectPermutation(int current_p);
     bool applyOrder(const std::vector<int>& order);
@@ -29,6 +30,7 @@ public:
           int max_it, int max_no_imp);
 
     void run();
+    void setSolution(BPPCSolution& solution);
 };
 
 #endif

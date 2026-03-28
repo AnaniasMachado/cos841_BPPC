@@ -88,6 +88,7 @@ void AILS::applyPerturbation(int idx, BPPCSolution& sol,
 }
 
 // -------------------- Main AILS --------------------
+// -------------------- Main AILS --------------------
 BPPCSolution AILS::run() {
 
     SolutionBuilder builder(inst);
@@ -101,15 +102,18 @@ BPPCSolution AILS::run() {
     int iter = 0;
     int no_improve = 0;
 
+    // CREATE ONCE
+    QRVND qrvnd(current, K1, K2, K3,
+                alpha, gamma, epsilon,
+                q_max_iterations, q_max_no_improve);
+
+    RVND rvnd(current, K1, K2, K3);
+
     // -------------------- INITIAL LOCAL SEARCH --------------------
     if (useQRVND) {
-        QRVND ls(current, K1, K2, K3,
-                 alpha, gamma, epsilon,
-                 q_max_iterations, q_max_no_improve);
-        ls.run();
+        qrvnd.run();
     } else {
-        RVND ls(current, K1, K2, K3);
-        ls.run();
+        rvnd.run();
     }
 
     best = current;
@@ -129,13 +133,11 @@ BPPCSolution AILS::run() {
 
         // ---- Local Search ----
         if (useQRVND) {
-            QRVND ls(candidate, K1, K2, K3,
-                     alpha, gamma, epsilon,
-                     q_max_iterations, q_max_no_improve);
-            ls.run();
+            qrvnd.setSolution(candidate);   // Reuse learner
+            qrvnd.run();
         } else {
-            RVND ls(candidate, K1, K2, K3);
-            ls.run();
+            rvnd.setSolution(candidate);
+            rvnd.run();
         }
 
         int cand_obj = candidate.computeObjective(K1, K2, K3);
@@ -146,6 +148,12 @@ BPPCSolution AILS::run() {
             best = candidate;
             current = candidate;
             no_improve = 0;
+
+            if (useQRVND) {
+                qrvnd.setSolution(current);
+            } else {
+                rvnd.setSolution(current);
+            }
 
             weights[p] += 1.0;
         } else {

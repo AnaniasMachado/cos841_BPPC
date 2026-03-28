@@ -2,7 +2,9 @@
 
 // -------------------- Constructor --------------------
 RVND::RVND(BPPCSolution& solution, int k1, int k2, int k3)
-    : sol(solution), ls(sol, k1, k2, k3)
+    : sol(&solution),
+      ls(*sol, k1, k2, k3),
+      K1(k1), K2(k2), K3(k3)
 {
     std::random_device rd;
     rng = std::mt19937(rd());
@@ -31,4 +33,9 @@ void RVND::run() {
             neighborhoods.erase(neighborhoods.begin()+idx);
         }
     }
+}
+
+void RVND::setSolution(BPPCSolution& solution) {
+    sol = &solution;
+    ls.setSolution(*sol);
 }

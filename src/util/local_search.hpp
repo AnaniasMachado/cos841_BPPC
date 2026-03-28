@@ -5,7 +5,7 @@
 
 class LocalSearch {
 private:
-    BPPCSolution& sol;
+    BPPCSolution* sol;
     int K1, K2, K3;
 
     int computeObjective(const BPPCSolution& s) const;
@@ -16,6 +16,8 @@ public:
     bool relocation();
     bool exchange();
     bool add();
+
+    void setSolution(BPPCSolution& solution);
 };
 
 #endif
