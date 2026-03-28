@@ -19,9 +19,7 @@ public:
          bool use_qrvnd = false,
          double alpha_q = 0.1,
          double gamma_q = 0.9,
-         double epsilon_q = 0.1,
-         int q_max_it = 1000,
-         int q_max_stagn = 200);
+         double epsilon_q = 0.1);
 
     BPPCSolution run();
 
@@ -35,7 +33,6 @@ private:
     // QRVND parameters
     bool useQRVND;
     double alpha, gamma, epsilon;
-    int q_max_iterations, q_max_no_improve;
 
     std::mt19937 rng;
     std::vector<double> weights;

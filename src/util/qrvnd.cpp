@@ -3,13 +3,11 @@
 
 // -------------------- Constructor --------------------
 QRVND::QRVND(BPPCSolution& solution, int k1, int k2, int k3,
-             double a, double g, double e,
-             int max_it, int max_no_imp)
+             double a, double g, double e)
     : sol(&solution),
       ls(*sol, k1, k2, k3),
       K1(k1), K2(k2), K3(k3),
       alpha(a), gamma(g), epsilon(e),
-      max_iterations(max_it), max_no_improve(max_no_imp),
       dist01(0.0, 1.0)
 {
     std::random_device rd;

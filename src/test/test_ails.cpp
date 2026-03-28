@@ -24,8 +24,6 @@ int main() {
     double alpha = 0.5;         // learning rate
     double gamma = 0.9;         // discount factor
     double epsilon = 0.02;       // epsilon-greedy
-    int q_max_iterations = 20; // max iterations for QRVND
-    int q_max_no_improve = 5;   // max stagnation for QRVND
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();
@@ -37,8 +35,7 @@ int main() {
     AILS ails(inst, k1, k2, k3,
               max_iterations, max_no_improve,
               useQRVND,
-              alpha, gamma, epsilon,
-              q_max_iterations, q_max_no_improve);
+              alpha, gamma, epsilon);
 
     BPPCSolution best = ails.run();
 

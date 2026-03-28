@@ -13,7 +13,6 @@ private:
     int K1,K2,K3;
 
     double alpha, gamma, epsilon;
-    int max_iterations, max_no_improve;
 
     std::vector<std::vector<int>> perms;
     std::vector<std::vector<double>> Q;
@@ -26,8 +25,7 @@ private:
 
 public:
     QRVND(BPPCSolution& solution, int k1, int k2, int k3,
-          double a, double g, double e,
-          int max_it, int max_no_imp);
+          double a, double g, double e);
 
     void run();
     void setSolution(BPPCSolution& solution);

@@ -12,15 +12,13 @@ AILS::AILS(const BPPCInstance& instance,
            int max_it,
            int max_no_imp,
            bool use_qrvnd_,
-           double alpha_, double gamma_, double epsilon_,
-           int q_max_it_, int q_max_no_imp_)
+           double alpha_, double gamma_, double epsilon_)
     : inst(instance),
       K1(k1), K2(k2), K3(k3),
       max_iterations(max_it),
       max_no_improve(max_no_imp),
       useQRVND(use_qrvnd_),
-      alpha(alpha_), gamma(gamma_), epsilon(epsilon_),
-      q_max_iterations(q_max_it_), q_max_no_improve(q_max_no_imp_)
+      alpha(alpha_), gamma(gamma_), epsilon(epsilon_)
 {
     std::random_device rd;
     rng = std::mt19937(rd());
@@ -104,8 +102,7 @@ BPPCSolution AILS::run() {
 
     // CREATE ONCE
     QRVND qrvnd(current, K1, K2, K3,
-                alpha, gamma, epsilon,
-                q_max_iterations, q_max_no_improve);
+                alpha, gamma, epsilon);
 
     RVND rvnd(current, K1, K2, K3);
 
