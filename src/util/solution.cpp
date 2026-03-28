@@ -12,25 +12,35 @@ BPPCSolution::BPPCSolution(int N_items, int bin_capacity,
 }
 
 void BPPCSolution::addItemToBin(int item, int bin_index) {
+    if (item < 0 || item >= weights.size()) return;
+
     if (bin_index >= bins.size()) {
         bins.resize(bin_index + 1);
         bin_loads.resize(bin_index + 1, 0);
     }
+
     bins[bin_index].push_back(item);
     bin_loads[bin_index] += weights[item];
 }
 
 void BPPCSolution::moveItem(int item, int from_bin, int to_bin) {
+    if (from_bin >= bins.size()) return;
+
     auto& bin_from = bins[from_bin];
+
     auto it = std::find(bin_from.begin(), bin_from.end(), item);
-    if (it != bin_from.end()) {
-        bin_from.erase(it);
-        bin_loads[from_bin] -= weights[item];
-    }
+    if (it == bin_from.end()) return;
+
+    bin_from.erase(it);
+    bin_loads[from_bin] -= weights[item];
+
     addItemToBin(item, to_bin);
 }
 
 void BPPCSolution::swapItems(int bin1, int idx1, int bin2, int idx2) {
+    if (bin1 >= bins.size() || bin2 >= bins.size()) return;
+    if (idx1 >= bins[bin1].size() || idx2 >= bins[bin2].size()) return;
+
     int item1 = bins[bin1][idx1];
     int item2 = bins[bin2][idx2];
 

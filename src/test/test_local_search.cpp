@@ -1,5 +1,5 @@
 #include "../util/builder.hpp"
-#include "../util/local_search.hpp"
+#include "../util/rvnd.hpp"
 #include "../util/bppc.hpp"
 #include <iostream>
 
@@ -10,24 +10,21 @@ int main() {
     int k2 = 2;
     int k3 = 5;
     
-    // Build an initial solution
+    // -------------------- Build initial solution --------------------
     SolutionBuilder builder(inst);
-    // BPPCSolution sol = builder.MFFD();
-    // BPPCSolution sol = builder.randomFeasible();
     BPPCSolution sol = builder.greedy(alpha, k1, k2, k3);
 
     std::cout << "--- Initial Solution ---\n";
     sol.print();
     std::cout << "Objective: " << sol.computeObjective(k1, k2, k3) << "\n";
 
-    // Run RVND local search
-    LocalSearchRVND rvnd(sol, k1, k2, k3);
+    // -------------------- Run RVND --------------------
+    RVND rvnd(sol, k1, k2, k3);
     rvnd.run();
 
-    BPPCSolution improved = rvnd.getSolution();
     std::cout << "\n--- Improved Solution (RVND) ---\n";
-    improved.print();
-    std::cout << "Objective: " << improved.computeObjective(k1, k2, k3) << "\n";
+    sol.print();  // RVND modifies solution in-place
+    std::cout << "Objective: " << sol.computeObjective(k1, k2, k3) << "\n";
 
     return 0;
 }

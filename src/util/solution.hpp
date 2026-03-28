@@ -6,7 +6,9 @@
 
 class BPPCSolution {
     friend class SolutionBuilder;
-    friend class LocalSearchRVND;
+    friend class LocalSearch;
+    friend class RVND;
+    friend class QRVND;
     friend class Perturbations;
     friend class AILS;
 public:

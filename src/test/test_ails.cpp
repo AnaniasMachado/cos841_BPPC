@@ -15,8 +15,17 @@ int main() {
     int k2 = 2;
     int k3 = 5;
 
+    // AILS parameters
     int max_iterations = 500;
     int max_no_improve = 10;
+
+    // QRVND parameters
+    bool useQRVND = true;       // true -> use QRVND, false -> use RVND
+    double alpha = 0.5;         // learning rate
+    double gamma = 0.9;         // discount factor
+    double epsilon = 0.02;       // epsilon-greedy
+    int q_max_iterations = 20; // max iterations for QRVND
+    int q_max_no_improve = 5;   // max stagnation for QRVND
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();
@@ -25,20 +34,20 @@ int main() {
     // -------------------- Run AILS --------------------
     auto start = std::chrono::high_resolution_clock::now();
 
-    AILS ails(inst, k1, k2, k3, max_iterations, max_no_improve);
+    AILS ails(inst, k1, k2, k3,
+              max_iterations, max_no_improve,
+              useQRVND,
+              alpha, gamma, epsilon,
+              q_max_iterations, q_max_no_improve);
+
     BPPCSolution best = ails.run();
 
     auto end = std::chrono::high_resolution_clock::now();
-    double elapsed =
-        std::chrono::duration<double>(end - start).count();
+    double elapsed = std::chrono::duration<double>(end - start).count();
 
     // -------------------- Results --------------------
     std::cout << "===== AILS RESULT =====\n";
-
-    // best.print();
-
     best.printStatistics(k1, k2, k3);
-
     std::cout << "Execution time: " << elapsed << " seconds\n";
 
     return 0;
