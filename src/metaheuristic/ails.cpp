@@ -11,12 +11,16 @@ AILS::AILS(const BPPCInstance& instance,
            int k1, int k2, int k3,
            int max_it,
            int max_no_imp,
+           BuilderType builder_type,
+           double beta_,
            bool use_qrvnd_,
            double alpha_, double gamma_, double epsilon_)
     : inst(instance),
       K1(k1), K2(k2), K3(k3),
       max_iterations(max_it),
       max_no_improve(max_no_imp),
+      builderType(builder_type),
+      beta(beta_),
       useQRVND(use_qrvnd_),
       alpha(alpha_), gamma(gamma_), epsilon(epsilon_)
 {
@@ -86,11 +90,42 @@ void AILS::applyPerturbation(int idx, BPPCSolution& sol,
 }
 
 // -------------------- Main AILS --------------------
-// -------------------- Main AILS --------------------
 BPPCSolution AILS::run() {
 
     SolutionBuilder builder(inst);
-    BPPCSolution current = builder.greedy(0.3, K1, K2, K3);
+    BPPCSolution current = [&]() {
+        switch (builderType) {
+            case BuilderType::MFFD:
+                return builder.MFFD();
+
+            case BuilderType::RANDOM:
+                return builder.randomFeasible();
+
+            case BuilderType::GREEDY:
+                return builder.greedy(beta, K1, K2, K3);
+        }
+        return builder.MFFD();
+    }();
+
+    // -------------------- Builder Selection --------------------
+    std::cout << "===== BUILDER =====\n";
+    switch (builderType) {
+        case BuilderType::MFFD:
+            std::cout << "MFFD\n";
+            current = builder.MFFD();
+            break;
+
+        case BuilderType::RANDOM:
+            std::cout << "RANDOM\n";
+            current = builder.randomFeasible();
+            break;
+
+        case BuilderType::GREEDY:
+            std::cout << "GREEDY (beta = " << beta << ")\n";
+            current = builder.greedy(beta, K1, K2, K3);
+            break;
+    }
+
     BPPCSolution best = current;
 
     std::cout << "===== INITIAL AILS RESULT =====\n";
@@ -130,7 +165,7 @@ BPPCSolution AILS::run() {
 
         // ---- Local Search ----
         if (useQRVND) {
-            qrvnd.setSolution(candidate);   // Reuse learner
+            qrvnd.setSolution(candidate);
             qrvnd.run();
         } else {
             rvnd.setSolution(candidate);

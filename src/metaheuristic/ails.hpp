@@ -10,12 +10,21 @@
 #include <random>
 #include <vector>
 
+// -------------------- Builder Selection --------------------
+enum class BuilderType {
+    MFFD,
+    RANDOM,
+    GREEDY
+};
+
 class AILS {
 public:
     AILS(const BPPCInstance& instance,
          int k1, int k2, int k3,
          int max_it,
          int max_no_imp,
+         BuilderType builder_type = BuilderType::MFFD,
+         double beta_ = 0.3,
          bool use_qrvnd = false,
          double alpha_q = 0.1,
          double gamma_q = 0.9,
@@ -29,6 +38,10 @@ private:
     int K1, K2, K3;
     int max_iterations;
     int max_no_improve;
+
+    // Builder parameters
+    BuilderType builderType;
+    double beta;
 
     // QRVND parameters
     bool useQRVND;

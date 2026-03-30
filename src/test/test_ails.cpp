@@ -11,6 +11,7 @@
 int main() {
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance("../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt");
+
     int k1 = 1;
     int k2 = 2;
     int k3 = 5;
@@ -19,11 +20,15 @@ int main() {
     int max_iterations = 500;
     int max_no_improve = 10;
 
+    // -------------------- Builder selection --------------------
+    BuilderType builder = BuilderType::GREEDY; // options: MFFD, RANDOM, GREEDY
+    double beta = 0.3; // only used if GREEDY
+
     // QRVND parameters
-    bool useQRVND = true;       // true -> use QRVND, false -> use RVND
-    double alpha = 0.5;         // learning rate
-    double gamma = 0.9;         // discount factor
-    double epsilon = 0.02;       // epsilon-greedy
+    bool useQRVND = false;
+    double alpha = 0.5;
+    double gamma = 0.9;
+    double epsilon = 0.02;
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();
@@ -34,6 +39,8 @@ int main() {
 
     AILS ails(inst, k1, k2, k3,
               max_iterations, max_no_improve,
+              builder,
+              beta,
               useQRVND,
               alpha, gamma, epsilon);
 
