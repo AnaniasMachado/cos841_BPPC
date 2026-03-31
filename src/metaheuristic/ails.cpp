@@ -125,6 +125,7 @@ BPPCSolution AILS::run() {
             current = builder.greedy(beta, K1, K2, K3);
             break;
     }
+    std::cout << "\n";
 
     BPPCSolution best = current;
 
