@@ -20,6 +20,9 @@ private:
     std::mt19937 rng;
     std::uniform_real_distribution<double> dist01;
 
+    bool initialized;
+    int current_p;
+
     int selectPermutation(int current_p);
     bool applyOrder(const std::vector<int>& order);
 

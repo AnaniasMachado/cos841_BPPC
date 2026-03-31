@@ -107,26 +107,6 @@ BPPCSolution AILS::run() {
         return builder.MFFD();
     }();
 
-    // -------------------- Builder Selection --------------------
-    std::cout << "===== BUILDER =====\n";
-    switch (builderType) {
-        case BuilderType::MFFD:
-            std::cout << "MFFD\n";
-            current = builder.MFFD();
-            break;
-
-        case BuilderType::RANDOM:
-            std::cout << "RANDOM\n";
-            current = builder.randomFeasible();
-            break;
-
-        case BuilderType::GREEDY:
-            std::cout << "GREEDY (beta = " << beta << ")\n";
-            current = builder.greedy(beta, K1, K2, K3);
-            break;
-    }
-    std::cout << "\n";
-
     BPPCSolution best = current;
 
     std::cout << "===== INITIAL AILS RESULT =====\n";

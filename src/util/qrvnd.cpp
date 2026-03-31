@@ -13,6 +13,9 @@ QRVND::QRVND(BPPCSolution& solution, int k1, int k2, int k3,
     std::random_device rd;
     rng = std::mt19937(rd());
 
+    initialized = false;
+    current_p = 0;
+
     perms = {
         {0,1,2},{0,2,1},
         {1,0,2},{1,2,0},
@@ -79,10 +82,6 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
 
 // -------------------- Run (ONE iteration only) --------------------
 void QRVND::run() {
-
-    // static state persists across AILS calls
-    static bool initialized = false;
-    static int current_p = 0;
 
     if (!initialized) {
         std::uniform_int_distribution<int> d(0, perms.size()-1);
