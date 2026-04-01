@@ -134,6 +134,9 @@ BPPCSolution AILS::run() {
     // -------------------- MAIN LOOP --------------------
     while (iter < max_iterations && no_improve < max_no_improve) {
 
+        std::cout << "Current iteration: " << iter << "\n";
+        std::cout << "No improve: " << no_improve << "\n";
+
         int current_obj = current.computeObjective(K1, K2, K3);
         BPPCSolution candidate = current;
 

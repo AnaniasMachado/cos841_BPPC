@@ -139,6 +139,10 @@ void BPPCSolution::removeEmptyBins() {
     bin_loads = new_loads;
 }
 
+bool BPPCSolution::isFeasible() const {
+    return (excess_weight == 0 && conflicts_count == 0);
+}
+
 int BPPCSolution::getExcess() const {
     return computeExcessWeight();
 }
@@ -185,4 +189,97 @@ void BPPCSolution::sanityCheck() const {
     assert(bins_used == real_bins_used && "bins_used does not match recomputed value!");
     assert(excess_weight == real_excess && "excess_weight does not match recomputed value!");
     assert(conflicts_count == real_conflicts && "conflicts_count does not match recomputed value!");
+}
+
+static int excessDelta(int load_before, int load_after, int C) {
+    int old_excess = std::max(0, load_before - C);
+    int new_excess = std::max(0, load_after - C);
+    return new_excess - old_excess;
+}
+
+int BPPCSolution::deltaAdd(int item, int bin_index, int k1, int k2, int k3) const {
+    int d_bins = 0;
+    int d_excess = 0;
+
+    bool new_bin = (bin_index >= bins.size() || bins[bin_index].empty());
+
+    if (new_bin) d_bins = 1;
+
+    int load_before = (bin_index < bin_loads.size()) ? bin_loads[bin_index] : 0;
+    int load_after = load_before + weights[item];
+
+    d_excess = excessDelta(load_before, load_after, C);
+
+    int d_conflicts = itemConflicts(item, bin_index);
+
+    return k1 * d_bins + k2 * d_excess + k3 * d_conflicts;
+}
+
+int BPPCSolution::deltaRemove(int item, int bin_index, int k1, int k2, int k3) const {
+    int d_bins = 0;
+    int d_excess = 0;
+
+    if (bin_index >= bins.size()) return 0;
+
+    bool becomes_empty = (bins[bin_index].size() == 1);
+    if (becomes_empty) d_bins = -1;
+
+    int load_before = bin_loads[bin_index];
+    int load_after = load_before - weights[item];
+
+    d_excess = excessDelta(load_before, load_after, C);
+
+    int d_conflicts = -itemConflicts(item, bin_index);
+
+    return k1*d_bins + k2*d_excess + k3*d_conflicts;
+}
+
+int BPPCSolution::deltaMove(int item, int from_bin, int to_bin, int k1, int k2, int k3) const {
+    if (from_bin == to_bin) return 0;
+
+    int delta = 0;
+
+    delta += deltaRemove(item, from_bin, k1, k2, k3);
+    delta += deltaAdd(item, to_bin, k1, k2, k3);
+
+    return delta;
+}
+
+int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
+                            int k1, int k2, int k3) const {
+    if (bin1 == bin2) return 0;
+
+    int item1 = bins[bin1][idx1];
+    int item2 = bins[bin2][idx2];
+
+    // --- BIN DELTA ---
+    int d_bins = 0;
+
+    // --- EXCESS DELTA ---
+    int load1_before = bin_loads[bin1];
+    int load2_before = bin_loads[bin2];
+
+    int load1_after = load1_before - weights[item1] + weights[item2];
+    int load2_after = load2_before - weights[item2] + weights[item1];
+
+    int d_excess =
+        excessDelta(load1_before, load1_after, C) +
+        excessDelta(load2_before, load2_after, C);
+
+    // --- CONFLICT DELTA ---
+    int d_conflicts = 0;
+
+    for (int other : bins[bin1]) {
+        if (other == item1) continue;
+        if (conflicts[other].count(item2)) d_conflicts++;
+        if (conflicts[other].count(item1)) d_conflicts--;
+    }
+
+    for (int other : bins[bin2]) {
+        if (other == item2) continue;
+        if (conflicts[other].count(item1)) d_conflicts++;
+        if (conflicts[other].count(item2)) d_conflicts--;
+    }
+
+    return k1*d_bins + k2*d_excess + k3*d_conflicts;
 }

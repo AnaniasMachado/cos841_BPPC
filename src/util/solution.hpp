@@ -51,11 +51,20 @@ public:
     // Remove empty bins
     void removeEmptyBins();
 
+    // Check if a solution is feasible
+    bool isFeasible() const;
+
     // Get excess
     int getExcess() const;
 
     // Get conflicts
     int getConflicts() const;
+
+    // -------------------- Delta evaluations --------------------
+    int deltaAdd(int item, int bin_index, int k1, int k2, int k3) const;
+    int deltaRemove(int item, int bin_index, int k1, int k2, int k3) const;
+    int deltaMove(int item, int from_bin, int to_bin, int k1, int k2, int k3) const;
+    int deltaSwap(int bin1, int idx1, int bin2, int idx2, int k1, int k2, int k3) const;
 
 private:
     int N; // number of items

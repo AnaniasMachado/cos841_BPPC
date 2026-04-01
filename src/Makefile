@@ -27,8 +27,9 @@ TEST_SRCS = $(TEST_DIR)/test_bppc.cpp \
             $(TEST_DIR)/test_solution.cpp \
             $(TEST_DIR)/test_local_search.cpp \
             $(TEST_DIR)/test_perturbations.cpp \
-            $(TEST_DIR)/test_ails.cpp
-
+            $(TEST_DIR)/test_ails.cpp \
+            $(TEST_DIR)/test_builder.cpp
+            
 # -------------------- Object files --------------------
 UTIL_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(UTIL_SRCS)))
 MT_OBJS   = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(MT_SRCS)))
@@ -36,9 +37,10 @@ TEST_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(TEST_SRCS)))
 
 # -------------------- Executables --------------------
 TEST_BINS = $(patsubst %.cpp,$(BIN_DIR)/%,$(notdir $(TEST_SRCS)))
+AUX_BIN = $(BIN_DIR)/ails_weight_runner
 
 # -------------------- Default target --------------------
-all: $(TEST_BINS)
+all: $(TEST_BINS) $(AUX_BIN)
 
 # -------------------- Compile utility objects --------------------
 $(BIN_DIR)/%.o: $(UTIL_DIR)/%.cpp | $(BIN_DIR)
@@ -55,6 +57,10 @@ $(BIN_DIR)/%.o: $(TEST_DIR)/%.cpp | $(BIN_DIR)
 # -------------------- Link test executables --------------------
 $(BIN_DIR)/%: $(BIN_DIR)/%.o $(UTIL_OBJS) $(MT_OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
+
+# -------------------- Link AILS runner --------------------
+$(AUX_BIN): $(UTIL_DIR)/ails_weight_runner.cpp $(UTIL_OBJS) $(MT_OBJS)
+	$(CXX) $(CXXFLAGS) $(UTIL_DIR)/ails_weight_runner.cpp $(UTIL_OBJS) $(MT_OBJS) -o $(AUX_BIN)
 
 # -------------------- Ensure bin exists --------------------
 $(BIN_DIR):

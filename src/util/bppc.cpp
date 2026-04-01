@@ -52,11 +52,13 @@ BPPCInstance readInstance(const string& filename) {
         stringstream ss(line);
         int i, w;
         ss >> i >> w;
+        i--;
 
         weights[i] = w;
 
         int a;
         while (ss >> a) {
+            a--;
             conflicts[i].insert(a);
             conflicts[a].insert(i);
         }
