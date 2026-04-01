@@ -18,8 +18,14 @@ public:
                  const std::vector<int>& item_weights,
                  const std::vector<std::unordered_set<int>>& conflicts);
 
+    // Get number of conflits of an item in a bin
+    int itemConflicts(int item, int bin_index) const;
+
     // Add an item to a bin
     void addItemToBin(int item, int bin_index);
+
+    // Remove an item from a bin
+    void removeItemFromBin(int item, int bin_index);
 
     // Move item from one bin to another
     void moveItem(int item, int from_bin, int to_bin);
@@ -35,6 +41,9 @@ public:
 
     // Print statistics
     void printStatistics(int k1, int k2, int k3) const;
+
+    // Sanity check
+    void sanityCheck() const;
 
     // Get number of bins used
     int binsUsed() const;
@@ -56,6 +65,10 @@ private:
 
     std::vector<Bin> bins; // vector of bins
     std::vector<int> bin_loads; // current load of each bin
+
+    int bins_used;
+    int excess_weight;
+    int conflicts_count;
 
     // Helper functions
     int computeExcessWeight() const;

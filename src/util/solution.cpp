@@ -1,14 +1,27 @@
 #include "solution.hpp"
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 
 BPPCSolution::BPPCSolution(int N_items, int bin_capacity, 
                            const std::vector<int>& item_weights,
                            const std::vector<std::unordered_set<int>>& item_conflicts)
-    : N(N_items), C(bin_capacity), weights(item_weights), conflicts(item_conflicts)
+    : N(N_items), C(bin_capacity), weights(item_weights), conflicts(item_conflicts),
+      bins_used(0), excess_weight(0), conflicts_count(0)
 {
     bins.clear();
     bin_loads.clear();
+}
+
+int BPPCSolution::itemConflicts(int item, int bin_index) const {
+    if (bin_index >= bins.size()) return 0;
+    const auto& bin = bins[bin_index];
+    int total = 0;
+    for (int other : bin) {
+        if (other != item && conflicts[other].count(item))
+            total++;
+    }
+    return total;
 }
 
 void BPPCSolution::addItemToBin(int item, int bin_index) {
@@ -19,36 +32,66 @@ void BPPCSolution::addItemToBin(int item, int bin_index) {
         bin_loads.resize(bin_index + 1, 0);
     }
 
+    if (bins[bin_index].empty()) bins_used += 1;
+
+    conflicts_count += itemConflicts(item, bin_index);
+
+    int old_excess = std::max(0, bin_loads[bin_index] - C);
+
     bins[bin_index].push_back(item);
     bin_loads[bin_index] += weights[item];
+
+    int new_excess = std::max(0, bin_loads[bin_index] - C);
+    excess_weight += (new_excess - old_excess);
+
+    // sanityCheck();
+}
+
+void BPPCSolution::removeItemFromBin(int item, int bin_index) {
+    if (item < 0 || item >= weights.size()) return;
+    if (bin_index >= bins.size()) return;
+
+    auto& bin = bins[bin_index];
+
+    auto it = std::find(bin.begin(), bin.end(), item);
+    if (it == bin.end()) return;
+
+    conflicts_count -= itemConflicts(item, bin_index);
+
+    int old_excess = std::max(0, bin_loads[bin_index] - C);
+
+    bin.erase(it);
+    bin_loads[bin_index] -= weights[item];
+
+    if (bin.empty()) bins_used -= 1;
+
+    int new_excess = std::max(0, bin_loads[bin_index] - C);
+    excess_weight += (new_excess - old_excess);
+
+    // sanityCheck();
 }
 
 void BPPCSolution::moveItem(int item, int from_bin, int to_bin) {
-    if (from_bin >= bins.size()) return;
+    if (from_bin >= bins.size() || to_bin < 0) return;
 
-    auto& bin_from = bins[from_bin];
-
-    auto it = std::find(bin_from.begin(), bin_from.end(), item);
-    if (it == bin_from.end()) return;
-
-    bin_from.erase(it);
-    bin_loads[from_bin] -= weights[item];
+    removeItemFromBin(item, from_bin);
 
     addItemToBin(item, to_bin);
 }
 
 void BPPCSolution::swapItems(int bin1, int idx1, int bin2, int idx2) {
+    if (bin1 == bin2) return;
     if (bin1 >= bins.size() || bin2 >= bins.size()) return;
     if (idx1 >= bins[bin1].size() || idx2 >= bins[bin2].size()) return;
 
     int item1 = bins[bin1][idx1];
     int item2 = bins[bin2][idx2];
 
-    bins[bin1][idx1] = item2;
-    bins[bin2][idx2] = item1;
+    removeItemFromBin(item1, bin1);
+    removeItemFromBin(item2, bin2);
 
-    bin_loads[bin1] = bin_loads[bin1] - weights[item1] + weights[item2];
-    bin_loads[bin2] = bin_loads[bin2] - weights[item2] + weights[item1];
+    addItemToBin(item1, bin2);
+    addItemToBin(item2, bin1);
 }
 
 int BPPCSolution::computeExcessWeight() const {
@@ -105,10 +148,7 @@ int BPPCSolution::getConflicts() const {
 }
 
 int BPPCSolution::computeObjective(int k1, int k2, int k3) const {
-    int used_bins = binsUsed();
-    int excess = computeExcessWeight();
-    int conflict_count = computeConflicts();
-    return k1 * used_bins + k2 * excess + k3 * conflict_count;
+    return k1 * bins_used + k2 * excess_weight + k3 * conflicts_count;
 }
 
 void BPPCSolution::print() const {
@@ -130,4 +170,19 @@ void BPPCSolution::printStatistics(int k1, int k2, int k3) const {
     std::cout << "Bins used: " << binsUsed() << "\n";
     std::cout << "Excess: " << computeExcessWeight() << "\n";
     std::cout << "Conflicts: " << computeConflicts() << "\n";
+}
+
+void BPPCSolution::sanityCheck() const {
+    int real_bins_used = binsUsed();
+    int real_excess = computeExcessWeight();
+    int real_conflicts = computeConflicts();
+
+    std::cout << "Sanity Check:\n";
+    std::cout << "  bins_used:       " << bins_used << " (computed: " << real_bins_used << ")\n";
+    std::cout << "  excess_weight:   " << excess_weight << " (computed: " << real_excess << ")\n";
+    std::cout << "  conflicts_count: " << conflicts_count << " (computed: " << real_conflicts << ")\n";
+
+    assert(bins_used == real_bins_used && "bins_used does not match recomputed value!");
+    assert(excess_weight == real_excess && "excess_weight does not match recomputed value!");
+    assert(conflicts_count == real_conflicts && "conflicts_count does not match recomputed value!");
 }

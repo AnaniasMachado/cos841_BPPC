@@ -29,7 +29,7 @@ int main() {
     double beta = 0.3;
 
     // QRVND parameters
-    bool useQRVND = true;
+    bool useQRVND = false;
     double alpha = 0.5;
     double gamma = 0.9;
     double epsilon = 0.02;
