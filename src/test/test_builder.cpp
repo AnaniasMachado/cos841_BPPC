@@ -7,8 +7,8 @@
 
 int main() {
     // -------------------- Instance path --------------------
-    // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
-    std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_3_8_9.txt";
+    std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
+    // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_3_8_9.txt";
 
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);

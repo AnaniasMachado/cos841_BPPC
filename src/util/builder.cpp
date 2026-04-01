@@ -97,7 +97,72 @@ BPPCSolution SolutionBuilder::randomFeasible() {
     return sol;
 }
 
-// -------------------- Greedy Solution --------------------
+// // -------------------- Greedy Solution --------------------
+// BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
+//     BPPCSolution sol(inst.N, inst.C, inst.weights, inst.conflicts);
+
+//     std::vector<int> items(inst.N);
+//     for (int i = 0; i < inst.N; i++) items[i] = i;
+
+//     std::sort(items.begin(), items.end(), [&](int a, int b) {
+//         return inst.weights[a] > inst.weights[b];
+//     });
+
+//     for (int item : items) {
+
+//         std::vector<std::pair<int,int>> candidates;
+//         int best = INT_MAX;
+//         int worst = -1;
+
+//         // Try all existing bins
+//         for (size_t bin_idx = 0; bin_idx < sol.bins.size(); bin_idx++) {
+
+//             BPPCSolution temp = sol;
+//             temp.addItemToBin(item, bin_idx);
+
+//             int obj = temp.computeObjective(k1, k2, k3);
+
+//             candidates.push_back({(int)bin_idx, obj});
+
+//             best = std::min(best, obj);
+//             worst = std::max(worst, obj);
+//         }
+
+//         // Also consider opening a new bin
+//         {
+//             BPPCSolution temp = sol;
+//             temp.addItemToBin(item, sol.bins.size());
+
+//             int obj = temp.computeObjective(k1, k2, k3);
+
+//             candidates.push_back({(int)sol.bins.size(), obj});
+
+//             best = std::min(best, obj);
+//             worst = std::max(worst, obj);
+//         }
+
+//         // Build RCL
+//         std::vector<int> RCL;
+//         double threshold = best + alpha * (worst - best);
+
+//         for (auto& [bin_idx, obj] : candidates) {
+//             if (obj <= threshold) {
+//                 RCL.push_back(bin_idx);
+//             }
+//         }
+
+//         // Random selection from RCL
+//         std::uniform_int_distribution<int> dist(0, RCL.size() - 1);
+//         int chosen_bin = RCL[dist(rng)];
+
+//         sol.addItemToBin(item, chosen_bin);
+//     }
+
+//     sol.removeEmptyBins();
+//     return sol;
+// }
+
+// -------------------- Greedy Solution (delta version) --------------------
 BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
     BPPCSolution sol(inst.N, inst.C, inst.weights, inst.conflicts);
 
@@ -112,15 +177,15 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
 
         std::vector<std::pair<int,int>> candidates;
         int best = INT_MAX;
-        int worst = -1;
+        int worst = INT_MIN;
+
+        int current_obj = sol.computeObjective(k1, k2, k3);
 
         // Try all existing bins
         for (size_t bin_idx = 0; bin_idx < sol.bins.size(); bin_idx++) {
 
-            BPPCSolution temp = sol;
-            temp.addItemToBin(item, bin_idx);
-
-            int obj = temp.computeObjective(k1, k2, k3);
+            int delta = sol.deltaAdd(item, bin_idx, k1, k2, k3);
+            int obj = current_obj + delta;
 
             candidates.push_back({(int)bin_idx, obj});
 
@@ -128,14 +193,14 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
             worst = std::max(worst, obj);
         }
 
-        // Also consider opening a new bin
+        // Try new bin
         {
-            BPPCSolution temp = sol;
-            temp.addItemToBin(item, sol.bins.size());
+            size_t new_bin = sol.bins.size();
 
-            int obj = temp.computeObjective(k1, k2, k3);
+            int delta = sol.deltaAdd(item, new_bin, k1, k2, k3);
+            int obj = current_obj + delta;
 
-            candidates.push_back({(int)sol.bins.size(), obj});
+            candidates.push_back({(int)new_bin, obj});
 
             best = std::min(best, obj);
             worst = std::max(worst, obj);
@@ -155,6 +220,7 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
         std::uniform_int_distribution<int> dist(0, RCL.size() - 1);
         int chosen_bin = RCL[dist(rng)];
 
+        // Apply move
         sol.addItemToBin(item, chosen_bin);
     }
 
