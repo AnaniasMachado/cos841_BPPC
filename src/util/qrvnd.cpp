@@ -50,13 +50,10 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
 
     std::vector<int> remaining = order;
 
-    std::uniform_int_distribution<int> dist;
-
     while (!remaining.empty()) {
 
-        dist.param(std::uniform_int_distribution<int>::param_type(0, remaining.size()-1));
-        int idx = dist(rng);
-        int n = remaining[idx];
+        int n = remaining.front();
+        remaining.erase(remaining.begin());
 
         bool improved = false;
 
@@ -69,11 +66,8 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         if (improved) {
             improved_global = true;
 
-            // RVND reset WITHOUT realloc
-            remaining.clear();
-            remaining.insert(remaining.end(), order.begin(), order.end());
-        } else {
-            remaining.erase(remaining.begin() + idx);
+            // Reset to full order
+            remaining = order;
         }
     }
 
@@ -113,7 +107,7 @@ void QRVND::run() {
     current_p = next_p;
 
     // Mild epsilon decay (optional)
-    epsilon = std::max(0.05, epsilon * 0.995);
+    epsilon = std::max(0.05, epsilon * 0.9);
 }
 
 void QRVND::setSolution(BPPCSolution& solution) {

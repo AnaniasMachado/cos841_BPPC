@@ -3,6 +3,7 @@
 
 #include "local_search.hpp"
 #include <vector>
+#include <algorithm>
 #include <random>
 
 class RVND {

@@ -8,13 +8,14 @@
 
 // -------------------- Constructor --------------------
 AILS::AILS(const BPPCInstance& instance,
-           int k1, int k2, int k3,
-           int max_it,
-           int max_no_imp,
-           BuilderType builder_type,
-           double beta_,
-           bool use_qrvnd_,
-           double alpha_, double gamma_, double epsilon_)
+            int k1, int k2, int k3,
+            int max_it,
+            int max_no_imp,
+            BuilderType builder_type,
+            double beta_,
+            bool use_qrvnd_,
+            double alpha_, double gamma_, double epsilon_,
+            bool verbose_)
     : inst(instance),
       K1(k1), K2(k2), K3(k3),
       max_iterations(max_it),
@@ -22,7 +23,8 @@ AILS::AILS(const BPPCInstance& instance,
       builderType(builder_type),
       beta(beta_),
       useQRVND(use_qrvnd_),
-      alpha(alpha_), gamma(gamma_), epsilon(epsilon_)
+      alpha(alpha_), gamma(gamma_), epsilon(epsilon_),
+      verbose(verbose_)
 {
     std::random_device rd;
     rng = std::mt19937(rd());
@@ -31,28 +33,22 @@ AILS::AILS(const BPPCInstance& instance,
 }
 
 // -------------------- Adaptive k --------------------
-int AILS::computeK(int current_obj, int best_obj,
-                   int no_improve, int iter) {
+int AILS::computeK(int no_improve) {
 
     int n_items = inst.N;
 
-    int k_min = 1;
-    int k_max = std::max(2, n_items / 10);
+    // 5% to 20% of items
+    int k_min = std::max(1, (int)(0.05 * n_items));
+    int k_max = std::max(k_min + 1, (int)(0.20 * n_items));
 
+    // Stagnation in [0,1]
     double stagnation = (double) no_improve / max_no_improve;
-    double distance = (best_obj > 0)
-        ? (double)(current_obj - best_obj) / best_obj
-        : 0.0;
 
-    double progress = (double) iter / max_iterations;
-
-    double intensity = 0.5 * stagnation
-                     + 0.3 * (1.0 - progress)
-                     + 0.2 * distance;
-
-    intensity = std::clamp(intensity, 0.0, 1.0);
+    // Fast saturation: >= 0.5 → max intensity
+    double intensity = std::min(1.0, stagnation * 2.0);
 
     int k = k_min + (int)((k_max - k_min) * intensity);
+
     return std::max(1, k);
 }
 
@@ -75,11 +71,10 @@ int AILS::selectPerturbation() {
 
 // -------------------- Apply perturbation --------------------
 void AILS::applyPerturbation(int idx, BPPCSolution& sol,
-                            int current_obj, int best_obj,
-                            int no_improve, int iter) {
+                            int no_improve) {
 
     Perturbations pert;
-    int k = computeK(current_obj, best_obj, no_improve, iter);
+    int k = computeK(no_improve);
 
     switch(idx) {
         case 0: pert.relocateK(sol, k); break;
@@ -109,9 +104,11 @@ BPPCSolution AILS::run() {
 
     BPPCSolution best = current;
 
-    std::cout << "===== INITIAL AILS RESULT =====\n";
-    best.printStatistics(K1, K2, K3);
-    std::cout << "\n";
+    if (verbose) {
+        std::cout << "===== INITIAL AILS RESULT =====\n";
+        best.printStatistics(K1, K2, K3);
+        std::cout << "\n";
+    }
 
     int iter = 0;
     int no_improve = 0;
@@ -134,8 +131,16 @@ BPPCSolution AILS::run() {
     // -------------------- MAIN LOOP --------------------
     while (iter < max_iterations && no_improve < max_no_improve) {
 
-        std::cout << "Current iteration: " << iter << "\n";
-        std::cout << "No improve: " << no_improve << "\n";
+        if (verbose && iter % 5 == 0) {
+            int current_obj = current.computeObjective(K1, K2, K3);
+            int best_obj = best.computeObjective(K1, K2, K3);
+
+            std::cout << "Iteration: " << iter
+                    << " | Current: " << current_obj
+                    << " | Best: " << best_obj
+                    << " | No improve: " << no_improve
+                    << "\n";
+        }
 
         int current_obj = current.computeObjective(K1, K2, K3);
         BPPCSolution candidate = current;
@@ -143,9 +148,7 @@ BPPCSolution AILS::run() {
         // ---- Perturbation ----
         int p = selectPerturbation();
         applyPerturbation(p, candidate,
-                          current_obj,
-                          best.computeObjective(K1,K2,K3),
-                          no_improve, iter);
+                          no_improve);
 
         // ---- Local Search ----
         if (useQRVND) {
@@ -178,6 +181,10 @@ BPPCSolution AILS::run() {
         }
 
         iter++;
+    }
+
+    if (verbose) {
+        std::cout << "Iterations to convergence: " << iter << "\n";
     }
 
     return best;

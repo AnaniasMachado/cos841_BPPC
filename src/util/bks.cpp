@@ -63,12 +63,23 @@ std::string extractInstanceName(const std::string& path) {
     size_t pos = path.find("BPPC/");
     if (pos == std::string::npos) return "";
 
-    std::string sub = path.substr(pos + 5); // remove "BPPC/"
-    
-    // remove ".txt"
-    if (sub.size() > 4 && sub.substr(sub.size() - 4) == ".txt") {
-        sub = sub.substr(0, sub.size() - 4);
+    // Get substring after "BPPC/"
+    std::string sub = path.substr(pos + 5);
+
+    // Split by '/'
+    size_t first_slash = sub.find('/');
+    if (first_slash == std::string::npos) return "";
+
+    std::string folder = sub.substr(0, first_slash); // d, u, t, etc.
+
+    // Find last '/'
+    size_t last_slash = sub.find_last_of('/');
+    std::string filename = sub.substr(last_slash + 1);
+
+    // Remove ".txt"
+    if (filename.size() > 4 && filename.substr(filename.size() - 4) == ".txt") {
+        filename = filename.substr(0, filename.size() - 4);
     }
 
-    return sub;
+    return folder + "/" + filename;
 }

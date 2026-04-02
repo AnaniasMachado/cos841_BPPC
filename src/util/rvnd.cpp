@@ -12,25 +12,27 @@ RVND::RVND(BPPCSolution& solution, int k1, int k2, int k3)
 
 // -------------------- RVND --------------------
 void RVND::run() {
-    std::vector<int> neighborhoods = {0,1,2};
+    // Shuffle permutation/order of neighborhoods
+    std::vector<int> neighborhoods = {0, 1, 2};
+    std::shuffle(neighborhoods.begin(), neighborhoods.end(), rng);
 
-    while (!neighborhoods.empty()) {
-        std::uniform_int_distribution<int> dist(0, neighborhoods.size()-1);
-        int idx = dist(rng);
-        int n = neighborhoods[idx];
+    bool improved = true;
+    
+    while (improved) {
+        improved = false;
 
-        bool improved = false;
+        for (int n : neighborhoods) {
+            bool local_improved = false;
+            
+            switch(n) {
+                case 0: local_improved = ls.relocation(); break;
+                case 1: local_improved = ls.exchange();   break;
+                case 2: local_improved = ls.add();        break;
+            }
 
-        switch(n) {
-            case 0: improved = ls.relocation(); break;
-            case 1: improved = ls.exchange(); break;
-            case 2: improved = ls.add(); break;
-        }
-
-        if (improved) {
-            neighborhoods = {0,1,2};
-        } else {
-            neighborhoods.erase(neighborhoods.begin()+idx);
+            if (local_improved) {
+                improved = true;
+            }
         }
     }
 }

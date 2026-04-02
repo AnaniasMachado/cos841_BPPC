@@ -1,4 +1,0 @@
-# weight_parameters.txt — tuning K1, K2, K3
-K1  "--K1 "  i  (1,500)
-K2  "--K2 "  i  (1,500)
-K3  "--K3 "  i  (1,500)

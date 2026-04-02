@@ -28,7 +28,8 @@ public:
          bool use_qrvnd = false,
          double alpha_q = 0.1,
          double gamma_q = 0.9,
-         double epsilon_q = 0.1);
+         double epsilon_q = 0.1,
+         bool verbose = false);
 
     BPPCSolution run();
 
@@ -50,14 +51,14 @@ private:
     std::mt19937 rng;
     std::vector<double> weights;
 
-    int computeK(int current_obj, int best_obj,
-                 int no_improve, int iter);
+    bool verbose;
+
+    int computeK(int no_improve);
 
     int selectPerturbation();
 
     void applyPerturbation(int idx, BPPCSolution& sol,
-                           int current_obj, int best_obj,
-                           int no_improve, int iter);
+                           int no_improve);
 };
 
 #endif

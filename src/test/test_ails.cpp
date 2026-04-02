@@ -11,8 +11,9 @@
 
 int main() {
     // -------------------- Instance path --------------------
-    std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
+    // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
     // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_4_8_9.txt";
+    std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
 
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
@@ -26,14 +27,18 @@ int main() {
     int max_no_improve = 10;
 
     // -------------------- Builder selection --------------------
-    BuilderType builder = BuilderType::GREEDY;
-    double beta = 0.3;
+    BuilderType builder = BuilderType::MFFD;
+    double beta = 0.2;
 
     // QRVND parameters
     bool useQRVND = false;
-    double alpha = 0.5;
-    double gamma = 0.9;
-    double epsilon = 0.02;
+    // double alpha = 0.9;
+    // double gamma = 0.3;
+    // double epsilon = 0.1;
+
+    double alpha = 0.1;
+    double gamma = 0.7;
+    double epsilon = 0.9;
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();

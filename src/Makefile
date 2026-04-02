@@ -37,7 +37,7 @@ TEST_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(TEST_SRCS)))
 
 # -------------------- Executables --------------------
 TEST_BINS = $(patsubst %.cpp,$(BIN_DIR)/%,$(notdir $(TEST_SRCS)))
-AUX_BIN = $(BIN_DIR)/ails_weight_runner
+AUX_BIN = $(BIN_DIR)/ails_runner
 
 # -------------------- Default target --------------------
 all: $(TEST_BINS) $(AUX_BIN)
@@ -59,8 +59,8 @@ $(BIN_DIR)/%: $(BIN_DIR)/%.o $(UTIL_OBJS) $(MT_OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 # -------------------- Link AILS runner --------------------
-$(AUX_BIN): $(UTIL_DIR)/ails_weight_runner.cpp $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $(UTIL_DIR)/ails_weight_runner.cpp $(UTIL_OBJS) $(MT_OBJS) -o $(AUX_BIN)
+$(AUX_BIN): $(UTIL_DIR)/ails_runner.cpp $(UTIL_OBJS) $(MT_OBJS)
+	$(CXX) $(CXXFLAGS) $(UTIL_DIR)/ails_runner.cpp $(UTIL_OBJS) $(MT_OBJS) -o $(AUX_BIN)
 
 # -------------------- Ensure bin exists --------------------
 $(BIN_DIR):
