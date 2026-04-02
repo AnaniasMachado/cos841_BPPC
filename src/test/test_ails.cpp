@@ -31,7 +31,7 @@ int main() {
     double beta = 0.2;
 
     // QRVND parameters
-    bool useQRVND = false;
+    bool useQRVND = true;
     // double alpha = 0.9;
     // double gamma = 0.3;
     // double epsilon = 0.1;
@@ -39,6 +39,9 @@ int main() {
     double alpha = 0.1;
     double gamma = 0.7;
     double epsilon = 0.9;
+
+    bool verbose = true;
+    double time_limit = 120.0;
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();
@@ -62,7 +65,8 @@ int main() {
               builder,
               beta,
               useQRVND,
-              alpha, gamma, epsilon);
+              alpha, gamma, epsilon,
+              verbose, time_limit);
 
     BPPCSolution best = ails.run();
 

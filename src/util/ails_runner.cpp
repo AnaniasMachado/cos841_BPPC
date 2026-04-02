@@ -40,6 +40,7 @@ int main(int argc, char* argv[]) {
     int max_iterations = 50;
     int max_no_improve = 5;
     bool verbose = false;
+    double time_limit = 3600.0;
 
     // -------------------- Parse optional arguments --------------------
     for (int i = 5; i < argc; i++) {
@@ -69,8 +70,11 @@ int main(int argc, char* argv[]) {
         else if (arg == "--epsilon" && i + 1 < argc) {
             epsilon = std::stod(argv[++i]);
         }
-        else if (arg == "--verbose") {   // <-- NEW
-            verbose = true;
+        else if (arg == "--time_limit" && i + 1 < argc) {
+        time_limit = std::stod(argv[++i]);
+        }
+        else if (arg == "--verbose" && i + 1 < argc) {
+            verbose = std::stoi(argv[++i]) != 0;
         }
     }
 
@@ -115,7 +119,7 @@ int main(int argc, char* argv[]) {
           max_iterations, max_no_improve,
           builder, beta, useQRVND,
           alpha, gamma, epsilon,
-          verbose);
+          verbose, time_limit);
 
     BPPCSolution sol = ails.run();
 

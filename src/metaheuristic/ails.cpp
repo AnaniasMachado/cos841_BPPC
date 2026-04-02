@@ -1,10 +1,4 @@
 #include "ails.hpp"
-#include "../util/qrvnd.hpp"
-#include "../util/rvnd.hpp"
-#include <iostream>
-#include <algorithm>
-#include <numeric>
-#include <random>
 
 // -------------------- Constructor --------------------
 AILS::AILS(const BPPCInstance& instance,
@@ -15,7 +9,7 @@ AILS::AILS(const BPPCInstance& instance,
             double beta_,
             bool use_qrvnd_,
             double alpha_, double gamma_, double epsilon_,
-            bool verbose_)
+            bool verbose_, double time_limit_)
     : inst(instance),
       K1(k1), K2(k2), K3(k3),
       max_iterations(max_it),
@@ -24,7 +18,7 @@ AILS::AILS(const BPPCInstance& instance,
       beta(beta_),
       useQRVND(use_qrvnd_),
       alpha(alpha_), gamma(gamma_), epsilon(epsilon_),
-      verbose(verbose_)
+      verbose(verbose_), time_limit(time_limit_)
 {
     std::random_device rd;
     rng = std::mt19937(rd());
@@ -87,6 +81,8 @@ void AILS::applyPerturbation(int idx, BPPCSolution& sol,
 // -------------------- Main AILS --------------------
 BPPCSolution AILS::run() {
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     SolutionBuilder builder(inst);
     BPPCSolution current = [&]() {
         switch (builderType) {
@@ -130,6 +126,14 @@ BPPCSolution AILS::run() {
 
     // -------------------- MAIN LOOP --------------------
     while (iter < max_iterations && no_improve < max_no_improve) {
+
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed = std::chrono::duration<double>(end - start).count();
+
+        if (elapsed > time_limit) {
+            if (verbose) std::cout << "ExceedTimeLimit: " << elapsed << "\n";
+            break;
+        }
 
         if (verbose && iter % 5 == 0) {
             int current_obj = current.computeObjective(K1, K2, K3);

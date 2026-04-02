@@ -7,8 +7,11 @@
 #include "../util/qrvnd.hpp"
 #include "../util/rvnd.hpp"
 
+#include <iostream>
+#include <algorithm>
+#include <numeric>
 #include <random>
-#include <vector>
+#include <chrono>
 
 // -------------------- Builder Selection --------------------
 enum class BuilderType {
@@ -29,7 +32,8 @@ public:
          double alpha_q = 0.1,
          double gamma_q = 0.9,
          double epsilon_q = 0.1,
-         bool verbose = false);
+         bool verbose = false,
+         double time_limit = 3600.0);
 
     BPPCSolution run();
 
@@ -52,6 +56,7 @@ private:
     std::vector<double> weights;
 
     bool verbose;
+    double time_limit;
 
     int computeK(int no_improve);
 

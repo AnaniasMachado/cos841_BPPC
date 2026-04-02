@@ -20,7 +20,23 @@ scenario$parameters <- parameters
 
 checkIraceScenario(scenario)
 
-results <- irace(scenario = scenario)
+if (file.exists(scenario$logFile)) {
+  cat("Resuming previous irace run...\n")
+  results <- tryCatch(
+    irace(scenario = scenario,
+          parameters = parameters,
+          recoveryFile = scenario$logFile),
+    error = function(e) {
+      cat("Recovery failed, starting fresh...\n")
+      irace(scenario = scenario,
+            parameters = parameters)
+    }
+  )
+} else {
+  cat("Starting new irace run...\n")
+  results <- irace(scenario = scenario,
+                   parameters = parameters)
+}
 
 write.csv(results,
           file = "irace_ranked.csv",
