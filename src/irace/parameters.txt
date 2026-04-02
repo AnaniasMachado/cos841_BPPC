@@ -14,9 +14,9 @@ use_qrvnd     "--use_qrvnd "     c  (0,1)
 # -------------------- Conditional parameters --------------------
 
 # Only used when builder = GREEDY
-beta          "--beta "          r  (0.1,0.9)     | builder == GREEDY
+beta          "--beta "          r  (0.1,0.9)     | builder %in% c("GREEDY")
 
 # Only used when QRVND is enabled
-alpha         "--alpha "         r  (0.01,0.99)     | use_qrvnd == 1
-gamma         "--gamma "         r  (0.01,0.99)     | use_qrvnd == 1
-epsilon       "--epsilon "       r  (0.01,0.99)     | use_qrvnd == 1
+alpha         "--alpha "         r  (0.01,0.99)   | use_qrvnd %in% c(1)
+gamma         "--gamma "         r  (0.01,0.99)   | use_qrvnd %in% c(1)
+epsilon       "--epsilon "       r  (0.01,0.99)   | use_qrvnd %in% c(1)
