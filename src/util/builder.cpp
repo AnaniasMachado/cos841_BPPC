@@ -110,17 +110,17 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
 
     for (int item : items) {
 
-        std::vector<std::pair<int,int>> candidates;
-        int best = INT_MAX;
-        int worst = INT_MIN;
+        std::vector<std::pair<int,long long>> candidates;
+        long long best = LLONG_MAX;
+        long long worst = LLONG_MIN;
 
-        int current_obj = sol.computeObjective(k1, k2, k3);
+        long long current_obj = (long long)sol.computeObjective(k1, k2, k3);
 
-        // Try all existing bins
+        // -------------------- Existing bins --------------------
         for (size_t bin_idx = 0; bin_idx < sol.bins.size(); bin_idx++) {
 
             int delta = sol.deltaAdd(item, bin_idx, k1, k2, k3);
-            int obj = current_obj + delta;
+            long long obj = current_obj + (long long)delta;
 
             candidates.push_back({(int)bin_idx, obj});
 
@@ -128,12 +128,12 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
             worst = std::max(worst, obj);
         }
 
-        // Try new bin
+        // -------------------- New bin --------------------
         {
             size_t new_bin = sol.bins.size();
 
             int delta = sol.deltaAdd(item, new_bin, k1, k2, k3);
-            int obj = current_obj + delta;
+            long long obj = current_obj + (long long)delta;
 
             candidates.push_back({(int)new_bin, obj});
 
@@ -141,21 +141,35 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
             worst = std::max(worst, obj);
         }
 
-        // Build RCL
+        // -------------------- RCL --------------------
         std::vector<int> RCL;
-        double threshold = best + alpha * (worst - best);
+        double threshold = (double)best + alpha * ((double)worst - (double)best);
 
         for (auto& [bin_idx, obj] : candidates) {
-            if (obj <= threshold) {
+            if ((double)obj <= threshold) {
                 RCL.push_back(bin_idx);
             }
         }
 
-        // Random selection from RCL
+        // -------------------- Safety fallback --------------------
+        if (RCL.empty()) {
+            // pick best deterministically
+            int best_bin = candidates[0].first;
+            long long best_obj = candidates[0].second;
+
+            for (auto& [bin_idx, obj] : candidates) {
+                if (obj < best_obj) {
+                    best_obj = obj;
+                    best_bin = bin_idx;
+                }
+            }
+            RCL.push_back(best_bin);
+        }
+
+        // -------------------- Selection --------------------
         std::uniform_int_distribution<int> dist(0, RCL.size() - 1);
         int chosen_bin = RCL[dist(rng)];
 
-        // Apply move
         sol.addItemToBin(item, chosen_bin);
     }
 
