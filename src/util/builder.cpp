@@ -14,7 +14,6 @@ SolutionBuilder::SolutionBuilder(const BPPCInstance& instance)
 BPPCSolution SolutionBuilder::MFFD() {
     BPPCSolution sol(inst.N, inst.C, inst.weights, inst.conflicts);
 
-    // 0-based indexing
     std::vector<int> items(inst.N);
     for (int i = 0; i < inst.N; i++) items[i] = i;
 
@@ -153,7 +152,7 @@ BPPCSolution SolutionBuilder::greedy(double alpha, int k1, int k2, int k3) {
 
         // -------------------- Safety fallback --------------------
         if (RCL.empty()) {
-            // pick best deterministically
+            // Pick best deterministically
             int best_bin = candidates[0].first;
             long long best_obj = candidates[0].second;
 

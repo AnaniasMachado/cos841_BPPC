@@ -20,12 +20,20 @@ enum class BuilderType {
     GREEDY
 };
 
+// -------------------- Acceptance Selection --------------------
+enum class AcceptanceType {
+    BEST,
+    ITERATIVE,
+    RW
+};
+
 class AILS {
 public:
     AILS(const BPPCInstance& instance,
          int k1, int k2, int k3,
          int max_it,
          int max_no_imp,
+         AcceptanceType acceptance_type = AcceptanceType::BEST,
          BuilderType builder_type = BuilderType::MFFD,
          double beta_ = 0.3,
          bool use_qrvnd = false,
@@ -43,9 +51,10 @@ private:
     int K1, K2, K3;
     int max_iterations;
     int max_no_improve;
+    AcceptanceType acceptance_type;
 
     // Builder parameters
-    BuilderType builderType;
+    BuilderType builder_type;
     double beta;
 
     // QRVND parameters

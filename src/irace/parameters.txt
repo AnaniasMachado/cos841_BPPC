@@ -6,6 +6,7 @@ K3         "--K3 "        i     (1, 500)
 # -------------------- AILS parameters --------------------
 max_it       "--max_it "       i    (50, 500)
 max_no_imp   "--max_no_imp "   i    (5, 25)
+acceptance   "--acceptance "   c    (BEST, ITERATIVE, RW)
 
 builder      "--builder "      c    (MFFD, RANDOM, GREEDY)
 

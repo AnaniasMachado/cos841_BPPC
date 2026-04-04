@@ -5,7 +5,8 @@ AILS::AILS(const BPPCInstance& instance,
             int k1, int k2, int k3,
             int max_it,
             int max_no_imp,
-            BuilderType builder_type,
+            AcceptanceType acceptance_type_,
+            BuilderType builder_type_,
             double beta_,
             bool use_qrvnd_,
             double alpha_, double gamma_, double epsilon_,
@@ -14,7 +15,8 @@ AILS::AILS(const BPPCInstance& instance,
       K1(k1), K2(k2), K3(k3),
       max_iterations(max_it),
       max_no_improve(max_no_imp),
-      builderType(builder_type),
+      acceptance_type(acceptance_type_),
+      builder_type(builder_type_),
       beta(beta_),
       useQRVND(use_qrvnd_),
       alpha(alpha_), gamma(gamma_), epsilon(epsilon_),
@@ -85,7 +87,7 @@ BPPCSolution AILS::run() {
 
     SolutionBuilder builder(inst);
     BPPCSolution current = [&]() {
-        switch (builderType) {
+        switch (builder_type) {
             case BuilderType::MFFD:
                 return builder.MFFD();
 
@@ -169,19 +171,25 @@ BPPCSolution AILS::run() {
         // ---- Acceptance ----
         if (cand_obj < best_obj) {
             best = candidate;
-            current = candidate;
             no_improve = 0;
+            weights[p] += 1.0;
+        } else {
+            no_improve++;
+            weights[p] = std::max(0.1, weights[p] * 0.95);
+        }
+
+        // ---- Update CURRENT based on acceptance policy ----
+        if ((acceptance_type == AcceptanceType::BEST && cand_obj < best_obj) ||
+            (acceptance_type == AcceptanceType::ITERATIVE && cand_obj < current_obj) ||
+            (acceptance_type == AcceptanceType::RW)) {
+
+            current = candidate;
 
             if (useQRVND) {
                 qrvnd.setSolution(current);
             } else {
                 rvnd.setSolution(current);
             }
-
-            weights[p] += 1.0;
-        } else {
-            no_improve++;
-            weights[p] = std::max(0.1, weights[p] * 0.95);
         }
 
         iter++;

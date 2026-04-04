@@ -19,6 +19,14 @@ BuilderType parseBuilder(const std::string& s) {
     return BuilderType::MFFD; // default
 }
 
+// -------------------- Helper: parse acceptance --------------------
+AcceptanceType parseAcceptance(const std::string& s) {
+    if (s == "BEST") return AcceptanceType::BEST;
+    if (s == "ITERATIVE") return AcceptanceType::ITERATIVE;
+    if (s == "RW") return AcceptanceType::RW;
+    return AcceptanceType::BEST; // default
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 5) {
         std::cerr << "Usage: " << argv[0] << " instance_file K1 K2 K3 [options]\n";
@@ -31,6 +39,7 @@ int main(int argc, char* argv[]) {
     int K3 = std::stoi(argv[4]);
 
     // -------------------- Default AILS parameters --------------------
+    AcceptanceType acceptance = AcceptanceType::BEST;
     BuilderType builder = BuilderType::MFFD;
     double beta = 0.3;
     bool useQRVND = true;
@@ -51,6 +60,9 @@ int main(int argc, char* argv[]) {
         } 
         else if (arg == "--max_no_imp" && i + 1 < argc) {
             max_no_improve = std::stoi(argv[++i]);
+        } 
+        else if (arg == "--acceptance" && i + 1 < argc) {
+            acceptance = parseAcceptance(argv[++i]);
         } 
         else if (arg == "--builder" && i + 1 < argc) {
             builder = parseBuilder(argv[++i]);
@@ -117,6 +129,7 @@ int main(int argc, char* argv[]) {
     // -------------------- Run AILS --------------------
     AILS ails(inst, K1, K2, K3,
           max_iterations, max_no_improve,
+          acceptance,
           builder, beta, useQRVND,
           alpha, gamma, epsilon,
           verbose, time_limit);

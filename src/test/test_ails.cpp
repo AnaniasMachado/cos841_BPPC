@@ -18,13 +18,14 @@ int main() {
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
 
-    int k1 = 1;
-    int k2 = 2;
-    int k3 = 5;
+    int k1 = 130;
+    int k2 = 136;
+    int k3 = 399;
 
     // AILS parameters
-    int max_iterations = 500;
-    int max_no_improve = 10;
+    int max_iterations = 218;
+    int max_no_improve = 5;
+    AcceptanceType acceptance = AcceptanceType::BEST;
 
     // -------------------- Builder selection --------------------
     BuilderType builder = BuilderType::MFFD;
@@ -32,16 +33,12 @@ int main() {
 
     // QRVND parameters
     bool useQRVND = true;
-    // double alpha = 0.9;
-    // double gamma = 0.3;
-    // double epsilon = 0.1;
-
-    double alpha = 0.1;
-    double gamma = 0.7;
-    double epsilon = 0.9;
+    double alpha = 0.2343;
+    double gamma = 0.9488;
+    double epsilon = 0.4318;
 
     bool verbose = true;
-    double time_limit = 120.0;
+    double time_limit = 3600.0;
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();
@@ -62,6 +59,7 @@ int main() {
 
     AILS ails(inst, k1, k2, k3,
               max_iterations, max_no_improve,
+              acceptance,
               builder,
               beta,
               useQRVND,

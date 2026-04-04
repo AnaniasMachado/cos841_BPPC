@@ -35,6 +35,7 @@ if (any(is.na(c(K1, K2, K3)))) {
 # -------------------- Optional parameters --------------------
 max_it     <- get_arg("--max_it", "50")
 max_no_imp <- get_arg("--max_no_imp", "5")
+acceptance <- get_arg("--acceptance", "BEST")
 builder    <- get_arg("--builder", "MFFD")
 beta       <- get_arg("--beta", "0.3")
 use_qrvnd  <- get_arg("--use_qrvnd", "1")
@@ -78,6 +79,7 @@ cmd_args <- c(
   K1, K2, K3,
   "--max_it", max_it,
   "--max_no_imp", max_no_imp,
+  "--acceptance", acceptance,
   "--builder", builder,
   "--beta", beta,
   "--use_qrvnd", use_qrvnd,
