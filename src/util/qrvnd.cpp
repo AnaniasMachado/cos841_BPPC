@@ -60,7 +60,7 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         switch(n) {
             case 0: improved = ls.relocation(); break;
             case 1: improved = ls.exchange();   break;
-            case 2: improved = ls.add();        break;
+            case 2: improved = ls.ejection();   break;
         }
 
         if (improved) {

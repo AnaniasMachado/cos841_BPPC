@@ -156,6 +156,18 @@ BPPCSolution AILS::run() {
         applyPerturbation(p, candidate,
                           no_improve);
 
+        // if (verbose) {
+        //     int current_obj = current.computeObjective(K1, K2, K3);
+        //     int best_obj = best.computeObjective(K1, K2, K3);
+
+        //     std::cout << "Iteration: " << iter
+        //             << " | Current: " << current_obj
+        //             << " | Best: " << best_obj
+        //             << " | No improve: " << no_improve
+        //             << " | Is candidate feasible: " << candidate.isFeasible()
+        //             << "\n";
+        // }
+
         // ---- Local Search ----
         if (useQRVND) {
             qrvnd.setSolution(candidate);

@@ -283,3 +283,110 @@ int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
 
     return k1*d_bins + k2*d_excess + k3*d_conflicts;
 }
+
+int BPPCSolution::deltaAddMultiple(
+    const std::vector<int>& items,
+    int bin_index,
+    int k1, int k2, int k3) const
+{
+    if (items.empty()) return 0;
+
+    // --- BIN DELTA ---
+    int d_bins = 0;
+
+    bool new_bin = (bin_index >= bins.size() || bins[bin_index].empty());
+    if (new_bin) d_bins = 1;
+
+    // --- EXCESS DELTA ---
+    int load_before = (bin_index < bin_loads.size()) ? bin_loads[bin_index] : 0;
+
+    int total_weight = 0;
+    for (int item : items) {
+        total_weight += weights[item];
+    }
+
+    int load_after = load_before + total_weight;
+
+    int d_excess = excessDelta(load_before, load_after, C);
+
+    // --- CONFLICT DELTA ---
+    int d_conflicts = 0;
+
+    // Conflicts with existing bin
+    if (bin_index < bins.size()) {
+        const auto& bin = bins[bin_index];
+
+        for (int item : items) {
+            for (int other : bin) {
+                if (conflicts[item].count(other)) {
+                    d_conflicts++;
+                }
+            }
+        }
+    }
+
+    // Internal conflicts inside subset
+    for (int i = 0; i < (int)items.size(); i++) {
+        for (int j = i + 1; j < (int)items.size(); j++) {
+            if (conflicts[items[i]].count(items[j])) {
+                d_conflicts++;
+            }
+        }
+    }
+
+    return k1*d_bins + k2*d_excess + k3*d_conflicts;
+}
+
+int BPPCSolution::deltaRemoveMultiple(
+    const std::vector<int>& items,
+    int bin_index,
+    int k1, int k2, int k3) const
+{
+    if (bin_index >= bins.size() || items.empty()) return 0;
+
+    const auto& bin = bins[bin_index];
+
+    // --- BIN DELTA ---
+    int d_bins = 0;
+    if ((int)bin.size() == (int)items.size()) {
+        d_bins = -1;
+    }
+
+    // --- EXCESS DELTA ---
+    int load_before = bin_loads[bin_index];
+
+    int total_weight = 0;
+    for (int item : items) {
+        total_weight += weights[item];
+    }
+
+    int load_after = load_before - total_weight;
+
+    int d_excess = excessDelta(load_before, load_after, C);
+
+    // --- CONFLICT DELTA ---
+    int d_conflicts = 0;
+
+    // Mark items in subset for O(1) check
+    std::unordered_set<int> subset(items.begin(), items.end());
+
+    for (int item : items) {
+
+        // Conflicts with items outside subset
+        for (int other : bin) {
+            if (subset.count(other)) continue;
+            if (conflicts[item].count(other)) {
+                d_conflicts--;
+            }
+        }
+
+        // Internal conflicts (count each pair once)
+        for (int other : conflicts[item]) {
+            if (other > item && subset.count(other)) {
+                d_conflicts--;
+            }
+        }
+    }
+
+    return k1*d_bins + k2*d_excess + k3*d_conflicts;
+}

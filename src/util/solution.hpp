@@ -65,6 +65,8 @@ public:
     int deltaRemove(int item, int bin_index, int k1, int k2, int k3) const;
     int deltaMove(int item, int from_bin, int to_bin, int k1, int k2, int k3) const;
     int deltaSwap(int bin1, int idx1, int bin2, int idx2, int k1, int k2, int k3) const;
+    int deltaAddMultiple(const std::vector<int>& items, int bin_index, int k1, int k2, int k3) const;
+    int deltaRemoveMultiple(const std::vector<int>& items, int bin_index, int k1, int k2, int k3) const;
 
 private:
     int N; // number of items

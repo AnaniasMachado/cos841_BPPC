@@ -24,7 +24,7 @@ int main() {
 
     // AILS parameters
     int max_iterations = 218;
-    int max_no_improve = 5;
+    int max_no_improve = 24;
     AcceptanceType acceptance = AcceptanceType::BEST;
 
     // -------------------- Builder selection --------------------

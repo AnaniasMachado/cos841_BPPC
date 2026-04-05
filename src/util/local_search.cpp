@@ -21,7 +21,7 @@ bool LocalSearch::relocation() {
         for (size_t i = 0; i < sol->bins[from].size(); i++) {
             int item = sol->bins[from][i];
 
-            for (size_t to = 0; to <= sol->bins.size(); to++) {
+            for (size_t to = 0; to < sol->bins.size(); to++) {
                 if (to == from) continue;
 
                 int delta = sol->deltaMove(item, from, to, K1, K2, K3);
@@ -105,6 +105,69 @@ bool LocalSearch::add() {
 
     if (best_item != -1) {
         sol->moveItem(best_item, best_from, new_bin);
+        sol->removeEmptyBins();
+        return true;
+    }
+
+    return false;
+}
+
+// -------------------- Split Adaptive (delta version) --------------------
+bool LocalSearch::ejection() {
+    if (sol->isFeasible()) {
+        return false;
+    }
+
+    int best_delta = 0;
+    int best_bin = -1;
+    std::vector<int> best_subset;
+
+    size_t new_bin = sol->bins.size();
+
+    // -------------------- Iterate over bins --------------------
+    for (size_t b = 0; b < sol->bins.size(); b++) {
+
+        const auto& bin = sol->bins[b];
+        if (bin.size() <= 1) continue;
+
+        // -------------------- Sort items by removal cost --------------------
+        std::vector<int> items = bin;
+
+        std::sort(items.begin(), items.end(),
+                  [&](int a, int b_item) {
+                      return sol->deltaRemove(a, b, K1, K2, K3)
+                           < sol->deltaRemove(b_item, b, K1, K2, K3);
+                  });
+
+        int max_k = std::min(3, (int)items.size());
+
+        // -------------------- Try subsets of size 1..k --------------------
+        std::vector<int> subset;
+
+        for (int k = 0; k < max_k; k++) {
+
+            subset.push_back(items[k]);
+
+            int delta =
+                sol->deltaRemoveMultiple(subset, b, K1, K2, K3) +
+                sol->deltaAddMultiple(subset, new_bin, K1, K2, K3);
+
+            if (delta < best_delta) {
+                best_delta = delta;
+                best_bin = b;
+                best_subset = subset;
+            }
+        }
+    }
+
+    // -------------------- Apply best move --------------------
+    if (best_bin != -1) {
+        size_t new_bin_idx = sol->bins.size();
+
+        for (int item : best_subset) {
+            sol->moveItem(item, best_bin, new_bin_idx);
+        }
+
         sol->removeEmptyBins();
         return true;
     }

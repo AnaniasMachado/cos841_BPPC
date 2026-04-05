@@ -27,7 +27,7 @@ void RVND::run() {
             switch(n) {
                 case 0: local_improved = ls.relocation(); break;
                 case 1: local_improved = ls.exchange();   break;
-                case 2: local_improved = ls.add();        break;
+                case 2: local_improved = ls.ejection();   break;
             }
 
             if (local_improved) {

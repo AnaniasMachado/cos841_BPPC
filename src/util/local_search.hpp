@@ -16,6 +16,7 @@ public:
     bool relocation();
     bool exchange();
     bool add();
+    bool ejection();
 
     void setSolution(BPPCSolution& solution);
 };
