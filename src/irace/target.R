@@ -33,17 +33,20 @@ if (any(is.na(c(K1, K2, K3)))) {
 }
 
 # -------------------- Optional parameters --------------------
-max_it     <- get_arg("--max_it", "50")
-max_no_imp <- get_arg("--max_no_imp", "5")
-acceptance <- get_arg("--acceptance", "BEST")
-builder    <- get_arg("--builder", "MFFD")
-beta       <- get_arg("--beta", "0.3")
-use_qrvnd  <- get_arg("--use_qrvnd", "1")
-alpha      <- get_arg("--alpha", "0.1")
-gamma      <- get_arg("--gamma", "0.9")
-epsilon    <- get_arg("--epsilon", "0.1")
-time_limit <- get_arg("--time_limit", "3600")
-verbose    <- get_arg("--verbose", "0")
+max_it      <- get_arg("--max_it", "50")
+max_no_imp  <- get_arg("--max_no_imp", "5")
+acceptance  <- get_arg("--acceptance", "BEST")
+improvement <- get_arg("--improvement", "BI")
+use_ema     <- get_arg("--use_ema", "1")
+builder     <- get_arg("--builder", "MFFD")
+eta         <- get_arg("--eta", "0.1")
+beta        <- get_arg("--beta", "0.3")
+use_qrvnd   <- get_arg("--use_qrvnd", "1")
+alpha       <- get_arg("--alpha", "0.1")
+gamma       <- get_arg("--gamma", "0.9")
+epsilon     <- get_arg("--epsilon", "0.1")
+time_limit  <- get_arg("--time_limit", "3600")
+verbose     <- get_arg("--verbose", "0")
 
 # -------------------- Resolve instance path --------------------
 if (grepl("^t/", instance_file)) {
@@ -80,7 +83,10 @@ cmd_args <- c(
   "--max_it", max_it,
   "--max_no_imp", max_no_imp,
   "--acceptance", acceptance,
+  "--improvement", improvement,
+  "--use_ema", use_ema,
   "--builder", builder,
+  "--eta", eta,
   "--beta", beta,
   "--use_qrvnd", use_qrvnd,
   "--alpha", alpha,

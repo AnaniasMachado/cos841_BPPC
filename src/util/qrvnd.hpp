@@ -27,7 +27,7 @@ private:
     bool applyOrder(const std::vector<int>& order);
 
 public:
-    QRVND(BPPCSolution& solution, int k1, int k2, int k3,
+    QRVND(BPPCSolution& solution, ImprovementType improvement, int k1, int k2, int k3,
           double a, double g, double e);
 
     void run();

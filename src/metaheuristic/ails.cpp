@@ -6,6 +6,8 @@ AILS::AILS(const BPPCInstance& instance,
             int max_it,
             int max_no_imp,
             AcceptanceType acceptance_type_,
+            ImprovementType improvement_type_,
+            bool use_ema_, double eta_,
             BuilderType builder_type_,
             double beta_,
             bool use_qrvnd_,
@@ -16,6 +18,8 @@ AILS::AILS(const BPPCInstance& instance,
       max_iterations(max_it),
       max_no_improve(max_no_imp),
       acceptance_type(acceptance_type_),
+      improvement_type(improvement_type_),
+      useEMA(use_ema_), eta(eta_),
       builder_type(builder_type_),
       beta(beta_),
       useQRVND(use_qrvnd_),
@@ -25,59 +29,120 @@ AILS::AILS(const BPPCInstance& instance,
     std::random_device rd;
     rng = std::mt19937(rd());
 
-    weights = {1.0, 1.0, 1.0, 1.0};
+    weights = std::vector<double>(4, 0.5);
+    perturbation_count = std::vector<int>(4, 0);
+    perturbation_success = std::vector<int>(4, 0);
 }
 
 // -------------------- Adaptive k --------------------
-int AILS::computeK(int no_improve) {
+int AILS::computeK(PerturbationType perturbation_type, BPPCSolution& sol, int no_improve) {
 
     int n_items = inst.N;
-
-    // 5% to 20% of items
-    int k_min = std::max(1, (int)(0.05 * n_items));
-    int k_max = std::max(k_min + 1, (int)(0.20 * n_items));
+    int n_bins = sol.bins.size();
 
     // Stagnation in [0,1]
     double stagnation = (double) no_improve / max_no_improve;
 
-    // Fast saturation: >= 0.5 → max intensity
-    double intensity = std::min(1.0, stagnation * 2.0);
+    if ((PerturbationType::RELOCATEK == perturbation_type) ||
+        (PerturbationType::EXCHANGEK == perturbation_type)) {
+        // 5% to 20% of items
+        int k_min = std::max(1, (int)(0.05 * n_items));
+        int k_max = std::max(k_min + 1, (int)(0.20 * n_items));
 
-    int k = k_min + (int)((k_max - k_min) * intensity);
+        // Fast saturation: >= 0.5 implies max intensity
+        double intensity = std::min(1.0, stagnation * 2.0);
 
-    return std::max(1, k);
+        int k = k_min + (int)((k_max - k_min) * intensity);
+
+        return std::max(1, k);
+    } else if (PerturbationType::MERGEK == perturbation_type) {
+        // 2.5% to 5% of bins
+        int k_min = std::max(2, (int)(0.025 * n_bins));
+        int k_max = std::max(k_min + 1, (int)(0.05 * n_bins));
+
+        // Fast saturation: >= 0.5 implies max intensity
+        double intensity = std::min(1.0, stagnation * 2.0);
+
+        int k = k_min + (int)((k_max - k_min) * intensity);
+
+        return std::max(1, k);
+    } else if (PerturbationType::SPLITK == perturbation_type) {
+        // 1% to 2% of bins
+        int k_min = std::max(1, (int)(0.01 * n_bins));
+        int k_max = std::max(k_min + 1, (int)(0.02 * n_bins));
+
+        // Fast saturation: >= 0.5 implies max intensity
+        double intensity = std::min(1.0, stagnation * 2.0);
+
+        int k = k_min + (int)((k_max - k_min) * intensity);
+
+        return std::max(1, k);
+    }
 }
 
 // -------------------- Select perturbation --------------------
-int AILS::selectPerturbation() {
+PerturbationType AILS::selectPerturbation() {
     double total = std::accumulate(weights.begin(), weights.end(), 0.0);
 
     std::uniform_real_distribution<double> dist(0.0, total);
     double r = dist(rng);
 
     double cumulative = 0.0;
+    int idx = 0;
     for (size_t i = 0; i < weights.size(); i++) {
         cumulative += weights[i];
-        if (r <= cumulative)
-            return i;
+        if (r <= cumulative) {
+            idx = i;
+            break;
+        }
     }
 
-    return weights.size() - 1;
+    switch(idx) {
+        case 0: return PerturbationType::RELOCATEK;
+        case 1: return PerturbationType::EXCHANGEK;
+        case 2: return PerturbationType::MERGEK;
+        case 3: return PerturbationType::SPLITK;
+    }
 }
 
 // -------------------- Apply perturbation --------------------
-void AILS::applyPerturbation(int idx, BPPCSolution& sol,
+void AILS::applyPerturbation(PerturbationType perturbation_type, BPPCSolution& sol,
                             int no_improve) {
 
     Perturbations pert;
-    int k = computeK(no_improve);
+    int k = computeK(perturbation_type, sol, no_improve);
 
-    switch(idx) {
-        case 0: pert.relocateK(sol, k); break;
-        case 1: pert.exchangeK(sol, k); break;
-        case 2: pert.merge(sol); break;
-        case 3: pert.split(sol); break;
+    switch(perturbation_type) {
+        case PerturbationType::RELOCATEK: pert.relocateK(sol, k); break;
+        case PerturbationType::EXCHANGEK: pert.exchangeK(sol, k); break;
+        case PerturbationType::MERGEK: pert.mergeK(sol, k); break;
+        case PerturbationType::SPLITK: pert.splitK(sol, k); break;
     }
+}
+
+// -------------------- Update weights --------------------
+void AILS::updateWeights(PerturbationType perturbation_type, bool reward) {
+    int p = 0;
+    switch(perturbation_type) {
+        case PerturbationType::RELOCATEK: p = 0; break;
+        case PerturbationType::EXCHANGEK: p = 1; break;
+        case PerturbationType::MERGEK: p = 2; break;
+        case PerturbationType::SPLITK: p = 3; break;
+    }
+
+    // weights[p] = reward ? weights[p] + 1.0 : std::max(0.1, weights[p] * 0.95);
+
+    ++perturbation_count[p];
+    if (reward) ++perturbation_success[p];
+
+    double eta = 0.2; // learning rate
+    double success_rate = (double)perturbation_success[p] / perturbation_count[p];
+
+    // Smooth update toward success rate
+    weights[p] = (1.0 - eta) * weights[p] + eta * success_rate;
+
+    // Minimum weight to ensure exploration
+    weights[p] = std::max(0.1, weights[p]);
 }
 
 // -------------------- Main AILS --------------------
@@ -111,11 +176,10 @@ BPPCSolution AILS::run() {
     int iter = 0;
     int no_improve = 0;
 
-    // CREATE ONCE
-    QRVND qrvnd(current, K1, K2, K3,
-                alpha, gamma, epsilon);
+    RVND rvnd(current, improvement_type, K1, K2, K3);
 
-    RVND rvnd(current, K1, K2, K3);
+    QRVND qrvnd(current, improvement_type, K1, K2, K3,
+                alpha, gamma, epsilon);
 
     // -------------------- INITIAL LOCAL SEARCH --------------------
     if (useQRVND) {
@@ -152,21 +216,8 @@ BPPCSolution AILS::run() {
         BPPCSolution candidate = current;
 
         // ---- Perturbation ----
-        int p = selectPerturbation();
-        applyPerturbation(p, candidate,
-                          no_improve);
-
-        // if (verbose) {
-        //     int current_obj = current.computeObjective(K1, K2, K3);
-        //     int best_obj = best.computeObjective(K1, K2, K3);
-
-        //     std::cout << "Iteration: " << iter
-        //             << " | Current: " << current_obj
-        //             << " | Best: " << best_obj
-        //             << " | No improve: " << no_improve
-        //             << " | Is candidate feasible: " << candidate.isFeasible()
-        //             << "\n";
-        // }
+        PerturbationType perturbation_type = selectPerturbation();
+        applyPerturbation(perturbation_type, candidate, no_improve);
 
         // ---- Local Search ----
         if (useQRVND) {
@@ -184,10 +235,10 @@ BPPCSolution AILS::run() {
         if (cand_obj < best_obj) {
             best = candidate;
             no_improve = 0;
-            weights[p] += 1.0;
+            if (useEMA) updateWeights(perturbation_type, true);
         } else {
             no_improve++;
-            weights[p] = std::max(0.1, weights[p] * 0.95);
+            if (useEMA) updateWeights(perturbation_type, false);
         }
 
         // ---- Update CURRENT based on acceptance policy ----
@@ -209,6 +260,12 @@ BPPCSolution AILS::run() {
 
     if (verbose) {
         std::cout << "Iterations to convergence: " << iter << "\n";
+        for (int i = 0; i < weights.size(); ++i) {
+            std::cout << "weight[" << i << "]: " << weights[i] 
+                    << ", count: " << perturbation_count[i] 
+                    << ", success: " << perturbation_success[i] 
+                    << "\n";
+        }
     }
 
     return best;

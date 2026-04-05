@@ -16,20 +16,21 @@ int main() {
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
 
-    double alpha = 0.3;
     int k1 = 1;
     int k2 = 2;
     int k3 = 5;
+    ImprovementType improvement = ImprovementType::BI;
 
     // -------------------- Build initial solution --------------------
     SolutionBuilder builder(inst);
+    double beta = 0.2;
     BPPCSolution sol = builder.MFFD();
 
     std::cout << "--- Initial Solution ---\n";
     std::cout << "Bins: " << sol.binsUsed() << "\n";
     std::cout << "Objective: " << sol.computeObjective(k1, k2, k3) << "\n\n";
 
-    LocalSearch ls(sol, k1, k2, k3);
+    LocalSearch ls(sol, improvement, k1, k2, k3);
 
     std::cout << std::fixed << std::setprecision(6);
 

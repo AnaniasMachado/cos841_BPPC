@@ -34,9 +34,12 @@ public:
          int max_it,
          int max_no_imp,
          AcceptanceType acceptance_type = AcceptanceType::BEST,
+         ImprovementType improvement_type = ImprovementType::BI,
+         bool use_ema = true,
+         double eta = 0.1,
          BuilderType builder_type = BuilderType::MFFD,
          double beta_ = 0.3,
-         bool use_qrvnd = false,
+         bool use_qrvnd = true,
          double alpha_q = 0.1,
          double gamma_q = 0.9,
          double epsilon_q = 0.1,
@@ -52,6 +55,15 @@ private:
     int max_iterations;
     int max_no_improve;
     AcceptanceType acceptance_type;
+    ImprovementType improvement_type;
+
+    // EMA parameters
+    std::mt19937 rng;
+    bool useEMA;
+    std::vector<double> weights;
+    std::vector<int> perturbation_count;
+    std::vector<int> perturbation_success;
+    double eta;
 
     // Builder parameters
     BuilderType builder_type;
@@ -61,18 +73,17 @@ private:
     bool useQRVND;
     double alpha, gamma, epsilon;
 
-    std::mt19937 rng;
-    std::vector<double> weights;
-
     bool verbose;
     double time_limit;
 
-    int computeK(int no_improve);
+    int computeK(PerturbationType perturbation_type, BPPCSolution& sol, int no_improve);
 
-    int selectPerturbation();
+    PerturbationType selectPerturbation();
 
-    void applyPerturbation(int idx, BPPCSolution& sol,
+    void applyPerturbation(PerturbationType perturbation_type, BPPCSolution& sol,
                            int no_improve);
+
+    void updateWeights(PerturbationType perturbation_type, bool reward);
 };
 
 #endif

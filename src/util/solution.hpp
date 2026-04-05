@@ -76,6 +76,8 @@ private:
 
     std::vector<Bin> bins; // vector of bins
     std::vector<int> bin_loads; // current load of each bin
+    std::vector<int> bin_conflicts; // number of conflicts of each bin
+    std::unordered_set<int> bad_bins; // bins with excess weight or conflicts
 
     int bins_used;
     int excess_weight;

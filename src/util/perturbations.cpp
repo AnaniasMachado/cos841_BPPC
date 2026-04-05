@@ -75,6 +75,43 @@ void Perturbations::merge(BPPCSolution& sol) {
     sol.removeEmptyBins();
 }
 
+void Perturbations::mergeK(BPPCSolution& sol, int k) {
+    int n = sol.bins.size();
+    if (n < 2) return;
+
+    // Collect non-empty bins
+    std::vector<int> active_bins;
+    for (int i = 0; i < n; i++) {
+        if (!sol.bins[i].empty()) {
+            active_bins.push_back(i);
+        }
+    }
+
+    if (active_bins.size() < 2) return;
+
+    // Shuffle once
+    std::shuffle(active_bins.begin(), active_bins.end(), rng);
+
+    int max_pairs = active_bins.size() / 2;
+    int num_merges = std::min(k, max_pairs);
+
+    for (int i = 0; i < num_merges; i++) {
+        int b1 = active_bins[2 * i];
+        int b2 = active_bins[2 * i + 1];
+
+        if (b1 == b2) continue; // safety (should not happen)
+
+        // Move all items from b2 to b1
+        auto items = sol.bins[b2]; // copy
+        for (int item : items) {
+            sol.moveItem(item, b2, b1);
+        }
+    }
+
+    // Clean up once at the end
+    sol.removeEmptyBins();
+}
+
 // -------------------- Split --------------------
 void Perturbations::split(BPPCSolution& sol) {
     if (sol.bins.empty()) return;
@@ -119,6 +156,41 @@ void Perturbations::split(BPPCSolution& sol) {
         }
 
         sol.moveItem(item, b, to);
+    }
+
+    sol.removeEmptyBins();
+}
+
+void Perturbations::splitK(BPPCSolution& sol, int k) {
+    if (sol.bins.empty() || k <= 0) return;
+
+    // -------------------- Collect bins that can be split (size >= 2) --------------------
+    std::vector<int> candidates;
+    for (size_t i = 0; i < sol.bins.size(); i++) {
+        if (sol.bins[i].size() > 1) {
+            candidates.push_back(i);
+        }
+    }
+
+    // Not enough candidates to split
+    if ((int)candidates.size() <= k) return;
+
+    // -------------------- Shuffle candidates --------------------
+    std::shuffle(candidates.begin(), candidates.end(), rng);
+
+    // -------------------- Prepare uniform distribution over remaining bins --------------------
+    std::uniform_int_distribution<size_t> dist(k, candidates.size() - 1);
+
+    // -------------------- Split items --------------------
+    for (int i = 0; i < k; i++) {
+        int b = candidates[i];
+        auto items = sol.bins[b]; // copy items to split
+
+        for (int item : items) {
+            size_t to_idx = dist(rng);           // random index in remaining candidates
+            int to_bin = candidates[to_idx];    // map to actual bin index
+            sol.moveItem(item, b, to_bin);
+        }
     }
 
     sol.removeEmptyBins();

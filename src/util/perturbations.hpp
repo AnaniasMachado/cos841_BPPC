@@ -4,6 +4,16 @@
 #include "solution.hpp"
 #include <random>
 
+// -------------------- Perturbation Selection --------------------
+enum class PerturbationType {
+    RELOCATEK,
+    EXCHANGEK,
+    MERGE,
+    MERGEK,
+    SPLIT,
+    SPLITK
+};
+
 class Perturbations {
 private:
     std::mt19937 rng;
@@ -22,6 +32,12 @@ public:
 
     // Split one random bin into others
     void split(BPPCSolution& sol);
+
+    // Merge k random pairs of random bins
+    void mergeK(BPPCSolution& sol, int k);
+
+    // Split k random bin into others
+    void splitK(BPPCSolution& sol, int k);
 };
 
 #endif

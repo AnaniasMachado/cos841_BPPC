@@ -27,6 +27,13 @@ AcceptanceType parseAcceptance(const std::string& s) {
     return AcceptanceType::BEST; // default
 }
 
+// -------------------- Helper: parse improvement --------------------
+ImprovementType parseImprovement(const std::string& s) {
+    if (s == "BI") return ImprovementType::BI;
+    if (s == "FI") return ImprovementType::FI;
+    return ImprovementType::BI; // default
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 5) {
         std::cerr << "Usage: " << argv[0] << " instance_file K1 K2 K3 [options]\n";
@@ -40,6 +47,9 @@ int main(int argc, char* argv[]) {
 
     // -------------------- Default AILS parameters --------------------
     AcceptanceType acceptance = AcceptanceType::BEST;
+    ImprovementType improvement = ImprovementType::BI;
+    bool useEMA = true;
+    double eta = 0.1;
     BuilderType builder = BuilderType::MFFD;
     double beta = 0.3;
     bool useQRVND = true;
@@ -63,6 +73,15 @@ int main(int argc, char* argv[]) {
         } 
         else if (arg == "--acceptance" && i + 1 < argc) {
             acceptance = parseAcceptance(argv[++i]);
+        }
+        else if (arg == "--improvement" && i + 1 < argc) {
+            improvement = parseImprovement(argv[++i]);
+        } 
+        else if (arg == "--use_ema" && i + 1 < argc) {
+            useEMA = std::stoi(argv[++i]) != 0;
+        } 
+        else if (arg == "--eta" && i + 1 < argc) {
+            eta = std::stod(argv[++i]);
         } 
         else if (arg == "--builder" && i + 1 < argc) {
             builder = parseBuilder(argv[++i]);
@@ -129,7 +148,8 @@ int main(int argc, char* argv[]) {
     // -------------------- Run AILS --------------------
     AILS ails(inst, K1, K2, K3,
           max_iterations, max_no_improve,
-          acceptance,
+          acceptance, improvement,
+          useEMA, eta,
           builder, beta, useQRVND,
           alpha, gamma, epsilon,
           verbose, time_limit);

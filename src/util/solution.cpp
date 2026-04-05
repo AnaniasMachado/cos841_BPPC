@@ -11,6 +11,7 @@ BPPCSolution::BPPCSolution(int N_items, int bin_capacity,
 {
     bins.clear();
     bin_loads.clear();
+    bin_conflicts.clear();
 }
 
 int BPPCSolution::itemConflicts(int item, int bin_index) const {
@@ -30,11 +31,15 @@ void BPPCSolution::addItemToBin(int item, int bin_index) {
     if (bin_index >= bins.size()) {
         bins.resize(bin_index + 1);
         bin_loads.resize(bin_index + 1, 0);
+        bin_conflicts.resize(bin_index + 1, 0);
     }
 
     if (bins[bin_index].empty()) bins_used += 1;
 
-    conflicts_count += itemConflicts(item, bin_index);
+    int item_conflicts = itemConflicts(item, bin_index);
+
+    conflicts_count += item_conflicts;
+    bin_conflicts[bin_index] += item_conflicts;
 
     int old_excess = std::max(0, bin_loads[bin_index] - C);
 
@@ -43,6 +48,13 @@ void BPPCSolution::addItemToBin(int item, int bin_index) {
 
     int new_excess = std::max(0, bin_loads[bin_index] - C);
     excess_weight += (new_excess - old_excess);
+
+    bool is_bad = (new_excess > 0 || bin_conflicts[bin_index] > 0);
+    if (is_bad) {
+        bad_bins.insert(bin_index);
+    } else {
+        bad_bins.erase(bin_index);
+    }
 
     // sanityCheck();
 }
@@ -56,7 +68,10 @@ void BPPCSolution::removeItemFromBin(int item, int bin_index) {
     auto it = std::find(bin.begin(), bin.end(), item);
     if (it == bin.end()) return;
 
-    conflicts_count -= itemConflicts(item, bin_index);
+    int item_conflicts = itemConflicts(item, bin_index);
+    
+    conflicts_count -= item_conflicts;
+    bin_conflicts[bin_index] -= item_conflicts;
 
     int old_excess = std::max(0, bin_loads[bin_index] - C);
 
@@ -67,6 +82,13 @@ void BPPCSolution::removeItemFromBin(int item, int bin_index) {
 
     int new_excess = std::max(0, bin_loads[bin_index] - C);
     excess_weight += (new_excess - old_excess);
+
+    bool is_bad = (new_excess > 0 || bin_conflicts[bin_index] > 0);
+    if (is_bad) {
+        bad_bins.insert(bin_index);
+    } else {
+        bad_bins.erase(bin_index);
+    }
 
     // sanityCheck();
 }
@@ -127,16 +149,25 @@ int BPPCSolution::binsUsed() const {
 void BPPCSolution::removeEmptyBins() {
     std::vector<Bin> new_bins;
     std::vector<int> new_loads;
+    std::vector<int> new_bin_conflicts;
+    std::unordered_set<int> new_bad_bins;
 
     for (size_t i = 0; i < bins.size(); i++) {
         if (!bins[i].empty()) {
             new_bins.push_back(bins[i]);
             new_loads.push_back(bin_loads[i]);
+            new_bin_conflicts.push_back(bin_conflicts[i]);
+            
+            if (bad_bins.count(i)) {
+                new_bad_bins.insert(new_bins.size() - 1);
+            }
         }
     }
 
     bins = new_bins;
     bin_loads = new_loads;
+    bin_conflicts = new_bin_conflicts;
+    bad_bins = new_bad_bins;
 }
 
 bool BPPCSolution::isFeasible() const {

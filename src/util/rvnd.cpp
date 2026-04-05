@@ -1,9 +1,10 @@
 #include "rvnd.hpp"
 
 // -------------------- Constructor --------------------
-RVND::RVND(BPPCSolution& solution, int k1, int k2, int k3)
+RVND::RVND(BPPCSolution& solution, ImprovementType improvement_type_,
+            int k1, int k2, int k3)
     : sol(&solution),
-      ls(*sol, k1, k2, k3),
+      ls(*sol, improvement_type_, k1, k2, k3),
       K1(k1), K2(k2), K3(k3)
 {
     std::random_device rd;
