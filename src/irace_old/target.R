@@ -37,9 +37,9 @@ max_it      <- get_arg("--max_it", "50")
 max_no_imp  <- get_arg("--max_no_imp", "5")
 acceptance  <- get_arg("--acceptance", "BEST")
 improvement <- get_arg("--improvement", "BI")
-use_ucb     <- get_arg("--use_ucb", "1")
-c           <- get_arg("--c", "0.25")
+use_ema     <- get_arg("--use_ema", "1")
 builder     <- get_arg("--builder", "MFFD")
+eta         <- get_arg("--eta", "0.1")
 beta        <- get_arg("--beta", "0.3")
 use_qrvnd   <- get_arg("--use_qrvnd", "1")
 alpha       <- get_arg("--alpha", "0.1")
@@ -84,9 +84,9 @@ cmd_args <- c(
   "--max_no_imp", max_no_imp,
   "--acceptance", acceptance,
   "--improvement", improvement,
-  "--use_ucb", use_ucb,
-  "--c", c,
+  "--use_ema", use_ema,
   "--builder", builder,
+  "--eta", eta,
   "--beta", beta,
   "--use_qrvnd", use_qrvnd,
   "--alpha", alpha,

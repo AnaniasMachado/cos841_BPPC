@@ -12,6 +12,7 @@
 #include <numeric>
 #include <random>
 #include <chrono>
+#include <limits>
 
 // -------------------- Builder Selection --------------------
 enum class BuilderType {
@@ -35,8 +36,8 @@ public:
          int max_no_imp,
          AcceptanceType acceptance_type = AcceptanceType::BEST,
          ImprovementType improvement_type = ImprovementType::BI,
-         bool use_ema = true,
-         double eta = 0.1,
+         bool use_ucb = true,
+         double c = 0.25,
          BuilderType builder_type = BuilderType::MFFD,
          double beta_ = 0.3,
          bool use_qrvnd = true,
@@ -57,13 +58,12 @@ private:
     AcceptanceType acceptance_type;
     ImprovementType improvement_type;
 
-    // EMA parameters
+    // UCB parameters
     std::mt19937 rng;
-    bool useEMA;
-    std::vector<double> weights;
+    bool useUCB;
+    double c;
     std::vector<int> perturbation_count;
     std::vector<int> perturbation_success;
-    double eta;
 
     // Builder parameters
     BuilderType builder_type;
@@ -78,12 +78,14 @@ private:
 
     int computeK(PerturbationType perturbation_type, BPPCSolution& sol, int no_improve);
 
-    PerturbationType selectPerturbation();
+    PerturbationType getPerturbationType(int idx);
+
+    PerturbationType selectPerturbation(int iter);
 
     void applyPerturbation(PerturbationType perturbation_type, BPPCSolution& sol,
                            int no_improve);
 
-    void updateWeights(PerturbationType perturbation_type, bool reward);
+    void updateUCB(PerturbationType perturbation_type, bool reward);
 };
 
 #endif

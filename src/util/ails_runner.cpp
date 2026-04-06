@@ -48,8 +48,8 @@ int main(int argc, char* argv[]) {
     // -------------------- Default AILS parameters --------------------
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;
-    bool useEMA = true;
-    double eta = 0.1;
+    bool useUCB = true;
+    double c = 0.1;
     BuilderType builder = BuilderType::MFFD;
     double beta = 0.3;
     bool useQRVND = true;
@@ -77,11 +77,11 @@ int main(int argc, char* argv[]) {
         else if (arg == "--improvement" && i + 1 < argc) {
             improvement = parseImprovement(argv[++i]);
         } 
-        else if (arg == "--use_ema" && i + 1 < argc) {
-            useEMA = std::stoi(argv[++i]) != 0;
+        else if (arg == "--use_ucb" && i + 1 < argc) {
+            useUCB = std::stoi(argv[++i]) != 0;
         } 
-        else if (arg == "--eta" && i + 1 < argc) {
-            eta = std::stod(argv[++i]);
+        else if (arg == "--c" && i + 1 < argc) {
+            c = std::stod(argv[++i]);
         } 
         else if (arg == "--builder" && i + 1 < argc) {
             builder = parseBuilder(argv[++i]);
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
     AILS ails(inst, K1, K2, K3,
           max_iterations, max_no_improve,
           acceptance, improvement,
-          useEMA, eta,
+          useUCB, c,
           builder, beta, useQRVND,
           alpha, gamma, epsilon,
           verbose, time_limit);

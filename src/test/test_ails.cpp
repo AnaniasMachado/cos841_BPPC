@@ -28,9 +28,9 @@ int main() {
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;
 
-    // EMA parameters
-    bool useEMA = true;
-    double eta = 0.1;
+    // UCB parameters
+    bool useUCB = true;
+    double c = 1.0;
 
     // -------------------- Builder selection --------------------
     BuilderType builder = BuilderType::MFFD;
@@ -65,7 +65,7 @@ int main() {
     AILS ails(inst, k1, k2, k3,
               max_iterations, max_no_improve,
               acceptance, improvement,
-              useEMA, eta,
+              useUCB, c,
               builder,
               beta,
               useQRVND,

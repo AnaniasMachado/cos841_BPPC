@@ -159,9 +159,8 @@ bool LocalSearch::ejection() {
 
     int best_delta = 0;
     int best_bin = -1;
-    std::vector<int> best_subset;
-
     size_t new_bin = sol->bins.size();
+    std::vector<int> best_subset;
 
     // -------------------- Iterate over bins --------------------
     // for (size_t b = 0; b < sol->bins.size(); b++) {
@@ -170,23 +169,34 @@ bool LocalSearch::ejection() {
         const auto& bin = sol->bins[b];
         if (bin.size() <= 1) continue;
 
-        // -------------------- Sort items by removal cost --------------------
-        std::vector<int> items = bin;
+        // -------------------- Precompute removal costs --------------------
+        std::vector<std::pair<int,int>> items_with_cost;
+        items_with_cost.reserve(bin.size());
 
-        std::sort(items.begin(), items.end(),
-                  [&](int a, int b_item) {
-                      return sol->deltaRemove(a, b, K1, K2, K3)
-                           < sol->deltaRemove(b_item, b, K1, K2, K3);
-                  });
+        for (int item : bin) {
+            int cost = sol->deltaRemove(item, b, K1, K2, K3);
+            items_with_cost.emplace_back(cost, item);
+        }
 
-        int max_k = std::min(3, (int)items.size());
+        int max_k = std::min(3, (int)items_with_cost.size());
+
+        // -------------------- Partial sort by removal cost --------------------
+        std::partial_sort(
+            items_with_cost.begin(),
+            items_with_cost.begin() + max_k,
+            items_with_cost.end(),
+            [](const std::pair<int,int>& a, const std::pair<int,int>& b) {
+                return a.first < b.first; // compare by cost
+            }
+        );
 
         // -------------------- Try subsets of size 1..k --------------------
         std::vector<int> subset;
+        subset.reserve(max_k);
 
         for (int k = 0; k < max_k; k++) {
 
-            subset.push_back(items[k]);
+            subset.push_back(items_with_cost[k].second);
 
             int delta =
                 sol->deltaRemoveMultiple(subset, b, K1, K2, K3) +
