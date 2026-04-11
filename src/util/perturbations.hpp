@@ -3,6 +3,7 @@
 
 #include "solution.hpp"
 #include <random>
+#include <algorithm>
 
 // -------------------- Perturbation Selection --------------------
 enum class PerturbationType {

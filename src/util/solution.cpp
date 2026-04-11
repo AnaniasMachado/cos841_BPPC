@@ -1,27 +1,41 @@
 #include "solution.hpp"
-#include <iostream>
-#include <algorithm>
-#include <cassert>
 
-BPPCSolution::BPPCSolution(int N_items, int bin_capacity, 
-                           const std::vector<int>& item_weights,
-                           const std::vector<std::unordered_set<int>>& item_conflicts)
-    : N(N_items), C(bin_capacity), weights(item_weights), conflicts(item_conflicts),
+BPPCSolution::BPPCSolution(
+    int N_items,
+    int bin_capacity,
+    const std::vector<int>& item_weights,
+    const std::vector<std::unordered_set<int>>& item_conflicts)
+    : N(N_items), C(bin_capacity), weights(item_weights),
       bins_used(0), excess_weight(0), conflicts_count(0)
 {
+    int W = (N + 63) / 64;
+    conflicts.assign(N, Bitset(W, 0ULL));
+
+    for (int i = 0; i < N; ++i) {
+        for (int j : item_conflicts[i]) {
+            conflicts[i][j >> 6] |= (1ULL << (j & 63));
+        }
+    }
+
     bins.clear();
     bin_loads.clear();
-    bin_conflicts.clear();;
+    bin_conflicts.clear();
 }
 
 int BPPCSolution::itemConflicts(int item, int bin_index) const {
-    if (bin_index >= bins.size()) return 0;
+    if (bin_index >= (int)bins.size()) return 0;
+
     const auto& bin = bins[bin_index];
+
     int total = 0;
     for (int other : bin) {
-        if (other != item && conflicts[other].count(item))
+        if (other == item) continue;
+
+        if (hasConflict(other, item)) {
             total++;
+        }
     }
+
     return total;
 }
 
@@ -127,14 +141,23 @@ int BPPCSolution::computeExcessWeight() const {
 
 int BPPCSolution::computeConflicts() const {
     int total = 0;
+
     for (const auto& bin : bins) {
-        for (size_t i = 0; i < bin.size(); ++i) {
-            for (size_t j = i + 1; j < bin.size(); ++j) {
-                if (conflicts[bin[i]].count(bin[j]))
+        const int sz = (int)bin.size();
+
+        for (int i = 0; i < sz; ++i) {
+            int a = bin[i];
+
+            for (int j = i + 1; j < sz; ++j) {
+                int b = bin[j];
+
+                if (hasConflict(a, b)) {
                     total++;
+                }
             }
         }
     }
+
     return total;
 }
 
@@ -283,10 +306,8 @@ int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
     int item1 = bins[bin1][idx1];
     int item2 = bins[bin2][idx2];
 
-    // --- BIN DELTA ---
     int d_bins = 0;
 
-    // --- EXCESS DELTA ---
     int load1_before = bin_loads[bin1];
     int load2_before = bin_loads[bin2];
 
@@ -297,22 +318,25 @@ int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
         excessDelta(load1_before, load1_after, C) +
         excessDelta(load2_before, load2_after, C);
 
-    // --- CONFLICT DELTA ---
     int d_conflicts = 0;
 
+    // bin1 after swap: item1 -> item2
     for (int other : bins[bin1]) {
         if (other == item1) continue;
-        if (conflicts[other].count(item2)) d_conflicts++;
-        if (conflicts[other].count(item1)) d_conflicts--;
+
+        if (hasConflict(item2, other)) d_conflicts++;
+        if (hasConflict(item1, other)) d_conflicts--;
     }
 
+    // bin2 after swap: item2 -> item1
     for (int other : bins[bin2]) {
         if (other == item2) continue;
-        if (conflicts[other].count(item1)) d_conflicts++;
-        if (conflicts[other].count(item2)) d_conflicts--;
+
+        if (hasConflict(item1, other)) d_conflicts++;
+        if (hasConflict(item2, other)) d_conflicts--;
     }
 
-    return k1*d_bins + k2*d_excess + k3*d_conflicts;
+    return k1 * d_bins + k2 * d_excess + k3 * d_conflicts;
 }
 
 int BPPCSolution::deltaAddMultiple(
@@ -322,14 +346,13 @@ int BPPCSolution::deltaAddMultiple(
 {
     if (items.empty()) return 0;
 
-    // --- BIN DELTA ---
     int d_bins = 0;
 
-    bool new_bin = (bin_index >= bins.size() || bins[bin_index].empty());
+    bool new_bin = (bin_index >= (int)bins.size() || bins[bin_index].empty());
     if (new_bin) d_bins = 1;
 
-    // --- EXCESS DELTA ---
-    int load_before = (bin_index < bin_loads.size()) ? bin_loads[bin_index] : 0;
+    int load_before =
+        (bin_index < (int)bin_loads.size()) ? bin_loads[bin_index] : 0;
 
     int total_weight = 0;
     for (int item : items) {
@@ -340,32 +363,31 @@ int BPPCSolution::deltaAddMultiple(
 
     int d_excess = excessDelta(load_before, load_after, C);
 
-    // --- CONFLICT DELTA ---
     int d_conflicts = 0;
 
-    // Conflicts with existing bin
-    if (bin_index < bins.size()) {
+    // conflicts with existing bin
+    if (bin_index < (int)bins.size()) {
         const auto& bin = bins[bin_index];
 
         for (int item : items) {
             for (int other : bin) {
-                if (conflicts[item].count(other)) {
+                if (hasConflict(item, other)) {
                     d_conflicts++;
                 }
             }
         }
     }
 
-    // Internal conflicts inside subset
+    // internal conflicts inside inserted items
     for (int i = 0; i < (int)items.size(); i++) {
         for (int j = i + 1; j < (int)items.size(); j++) {
-            if (conflicts[items[i]].count(items[j])) {
+            if (hasConflict(items[i], items[j])) {
                 d_conflicts++;
             }
         }
     }
 
-    return k1*d_bins + k2*d_excess + k3*d_conflicts;
+    return k1 * d_bins + k2 * d_excess + k3 * d_conflicts;
 }
 
 int BPPCSolution::deltaRemoveMultiple(
@@ -373,17 +395,15 @@ int BPPCSolution::deltaRemoveMultiple(
     int bin_index,
     int k1, int k2, int k3) const
 {
-    if (bin_index >= bins.size() || items.empty()) return 0;
+    if (bin_index >= (int)bins.size() || items.empty()) return 0;
 
     const auto& bin = bins[bin_index];
 
-    // --- BIN DELTA ---
     int d_bins = 0;
     if ((int)bin.size() == (int)items.size()) {
         d_bins = -1;
     }
 
-    // --- EXCESS DELTA ---
     int load_before = bin_loads[bin_index];
 
     int total_weight = 0;
@@ -395,29 +415,31 @@ int BPPCSolution::deltaRemoveMultiple(
 
     int d_excess = excessDelta(load_before, load_after, C);
 
-    // --- CONFLICT DELTA ---
     int d_conflicts = 0;
 
-    // Mark items in subset for O(1) check
+    // build fast lookup mask
     std::unordered_set<int> subset(items.begin(), items.end());
 
     for (int item : items) {
 
-        // Conflicts with items outside subset
+        // external conflicts
         for (int other : bin) {
             if (subset.count(other)) continue;
-            if (conflicts[item].count(other)) {
+
+            if (hasConflict(item, other)) {
                 d_conflicts--;
             }
         }
 
-        // Internal conflicts (count each pair once)
-        for (int other : conflicts[item]) {
-            if (other > item && subset.count(other)) {
+        // internal conflicts
+        for (int other : items) {
+            if (other <= item) continue;
+
+            if (hasConflict(item, other)) {
                 d_conflicts--;
             }
         }
     }
 
-    return k1*d_bins + k2*d_excess + k3*d_conflicts;
+    return k1 * d_bins + k2 * d_excess + k3 * d_conflicts;
 }

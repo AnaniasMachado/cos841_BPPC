@@ -1,5 +1,4 @@
 #include "perturbations.hpp"
-#include <algorithm>
 
 Perturbations::Perturbations() {
     std::random_device rd;

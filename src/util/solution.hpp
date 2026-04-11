@@ -3,6 +3,10 @@
 
 #include <vector>
 #include <unordered_set>
+#include <iostream>
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
 
 class BPPCSolution {
     friend class SolutionBuilder;
@@ -13,10 +17,11 @@ class BPPCSolution {
     friend class AILS;
 public:
     using Bin = std::vector<int>;
+    using Bitset = std::vector<uint64_t>;
 
-    BPPCSolution(int N_items, int bin_capacity, 
-                 const std::vector<int>& item_weights,
-                 const std::vector<std::unordered_set<int>>& conflicts);
+    BPPCSolution(int N_items, int bin_capacity,
+                const std::vector<int>& item_weights,
+                const std::vector<std::unordered_set<int>>& item_conflicts);
 
     // Get number of conflits of an item in a bin
     int itemConflicts(int item, int bin_index) const;
@@ -72,12 +77,12 @@ private:
     int N; // number of items
     int C; // bin capacity
     std::vector<int> weights; // weights[i]
-    std::vector<std::unordered_set<int>> conflicts; // conflicts[i]
+    std::vector<Bitset> conflicts; // conflicts[i]
 
     std::vector<Bin> bins; // vector of bins
     std::vector<int> bin_loads; // current load of each bin
     std::vector<int> bin_conflicts; // number of conflicts of each bin
-    std::unordered_set<int> bad_bins; // bins with excess weight or conflicts 
+    std::unordered_set<int> bad_bins; // bins with excess weight or conflicts
 
     int bins_used;
     int excess_weight;
@@ -86,6 +91,10 @@ private:
     // Helper functions
     int computeExcessWeight() const;
     int computeConflicts() const;
+
+    inline bool hasConflict(int a, int b) const {
+        return conflicts[a][b >> 6] & (1ULL << (b & 63));
+    }
 };
 
 #endif

@@ -1,0 +1,91 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 118K of event 'cpu/cycles/Pu'
+# Event count (approx.): 117342576092
+#
+# Overhead  Command    Shared Object         Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  .........  ....................  ............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    84.10%  test_ails  test_ails             [.] std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> >::find(int const&) const
+     2.92%  test_ails  test_ails             [.] BPPCSolution::itemConflicts(int, int) const
+     2.47%  test_ails  test_ails             [.] BPPCSolution::deltaSwap(int, int, int, int, int, int, int) const
+     1.42%  test_ails  test_ails             [.] BPPCSolution::deltaRemove(int, int, int, int, int) const
+     1.40%  test_ails  test_ails             [.] BPPCSolution::deltaAdd(int, int, int, int, int) const
+     1.03%  test_ails  test_ails             [.] BPPCSolution::deltaMove(int, int, int, int, int, int) const
+     0.94%  test_ails  test_ails             [.] LocalSearch::exchange()
+     0.90%  test_ails  libc.so.6             [.] _int_malloc
+     0.85%  test_ails  test_ails             [.] std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >* std::__do_uninit_copy<__gnu_cxx::__normal_iterator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > const*, std::vector<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >, std::allocator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > > > >, __gnu_cxx::__normal_iterator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > const*, std::vector<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >, std::allocator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > > > >, std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >*>(__gnu_cxx::__normal_iterator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > const*, std::vector<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >, std::allocator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > > > >, __gnu_cxx::__normal_iterator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > const*, std::vector<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >, std::allocator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > > > >, std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >*)
+     0.70%  test_ails  test_ails             [.] LocalSearch::relocation()
+     0.59%  test_ails  test_ails             [.] BPPCSolution::deltaRemoveMultiple(std::vector<int, std::allocator<int> > const&, int, int, int, int) const
+     0.56%  test_ails  libc.so.6             [.] malloc_consolidate
+     0.31%  test_ails  libc.so.6             [.] _int_free_chunk
+     0.23%  test_ails  libc.so.6             [.] cfree@GLIBC_2.2.5
+     0.21%  test_ails  libc.so.6             [.] unlink_chunk.isra.0
+     0.17%  test_ails  libc.so.6             [.] __libc_malloc2
+     0.17%  test_ails  libc.so.6             [.] malloc
+     0.14%  test_ails  test_ails             [.] void std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> >::_M_assign<std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> > const&, std::__detail::_ReuseOrAllocNode<std::allocator<std::__detail::_Hash_node<int, false> > > >(std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> > const&, std::__detail::_ReuseOrAllocNode<std::allocator<std::__detail::_Hash_node<int, false> > >&)
+     0.13%  test_ails  test_ails             [.] std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> >::_M_insert_unique_node(unsigned long, unsigned long, std::__detail::_Hash_node<int, false>*, unsigned long)
+     0.11%  test_ails  libstdc++.so.6.0.34   [.] operator new(unsigned long)
+     0.09%  test_ails  test_ails             [.] AILS::run()
+     0.07%  test_ails  test_ails             [.] std::pair<std::__detail::_Node_iterator<int, true, false>, bool> std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> >::_M_emplace_uniq<int const&>(int const&) [clone .isra.0]
+     0.05%  test_ails  [unknown]             [k] 0xffffffffb1c01968
+     0.04%  test_ails  libc.so.6             [.] __memset_avx2_unaligned_erms
+     0.04%  test_ails  test_ails             [.] BPPCSolution::removeEmptyBins()
+     0.04%  test_ails  libstdc++.so.6.0.34   [.] std::istreambuf_iterator<char, std::char_traits<char> > std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_int<long>(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, long&) const
+     0.03%  test_ails  libstdc++.so.6.0.34   [.] operator delete(void*)
+     0.03%  test_ails  libstdc++.so.6.0.34   [.] operator delete(void*)@plt
+     0.03%  test_ails  libstdc++.so.6.0.34   [.] malloc@plt
+     0.03%  test_ails  libc.so.6             [.] alloc_perturb
+     0.03%  test_ails  test_ails             [.] operator delete(void*, unsigned long)@plt
+     0.02%  test_ails  test_ails             [.] operator new(unsigned long)@plt
+     0.02%  test_ails  libstdc++.so.6.0.34   [.] free@plt
+     0.02%  test_ails  libstdc++.so.6.0.34   [.] operator delete(void*, unsigned long)
+     0.02%  test_ails  test_ails             [.] readInstance(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+     0.02%  test_ails  libc.so.6             [.] __memmove_avx_unaligned_erms
+     0.01%  test_ails  test_ails             [.] std::vector<int, std::allocator<int> >::operator=(std::vector<int, std::allocator<int> > const&) [clone .isra.0]
+     0.01%  test_ails  libstdc++.so.6.0.34   [.] std::istream::sentry::sentry(std::istream&, bool)
+     0.01%  test_ails  test_ails             [.] void std::shuffle<__gnu_cxx::__normal_iterator<unsigned long*, std::vector<unsigned long, std::allocator<unsigned long> > >, std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>&>(__gnu_cxx::__normal_iterator<unsigned long*, std::vector<unsigned long, std::allocator<unsigned long> > >, __gnu_cxx::__normal_iterator<unsigned long*, std::vector<unsigned long, std::allocator<unsigned long> > >, std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>&)
+     0.01%  test_ails  libstdc++.so.6.0.34   [.] std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned long, unsigned long, unsigned long) const
+     0.01%  test_ails  libstdc++.so.6.0.34   [.] std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned long) const
+     0.01%  test_ails  test_ails             [.] LocalSearch::ejection()
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::__use_cache<std::__numpunct_cache<char> >::operator()(std::locale const&) const [clone .isra.0]
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::istream::operator>>(int&)
+     0.00%  test_ails  test_ails             [.] BPPCSolution::~BPPCSolution()
+     0.00%  test_ails  test_ails             [.] memcpy@plt
+     0.00%  test_ails  test_ails             [.] BPPCSolution::deltaAddMultiple(std::vector<int, std::allocator<int> > const&, int, int, int, int) const
+     0.00%  test_ails  test_ails             [.] std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> >::erase(int const&) [clone .isra.0]
+     0.00%  test_ails  test_ails             [.] std::vector<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >, std::allocator<std::unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> > > >::~vector()
+     0.00%  test_ails  test_ails             [.] std::pair<std::__detail::_Node_iterator<int, true, false>, bool> std::_Hashtable<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true> >::_M_emplace_uniq<int const&>(int const&) [clone .isra.0]
+     0.00%  test_ails  libc.so.6             [.] systrim.constprop.0
+     0.00%  test_ails  test_ails             [.] SolutionBuilder::randomFeasible()
+     0.00%  test_ails  test_ails             [.] std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>::operator()()
+     0.00%  test_ails  test_ails             [.] unsigned long std::uniform_int_distribution<unsigned long>::operator()<std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul> >(std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>&, std::uniform_int_distribution<unsigned long>::param_type const&) [clone .isra.0]
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::locale::id::_M_id() const
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::basic_string<char, std::char_traits<char>, std::allocator<char> >::~basic_string()
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::istreambuf_iterator<char, std::char_traits<char> >::_M_get() const
+     0.00%  test_ails  test_ails             [.] void std::vector<int, std::allocator<int> >::_M_realloc_append<int const&>(int const&)
+     0.00%  test_ails  test_ails             [.] std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>::_M_gen_rand()
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer()@plt
+     0.00%  test_ails  test_ails             [.] void std::__adjust_heap<__gnu_cxx::__normal_iterator<std::pair<int, int>*, std::vector<std::pair<int, int>, std::allocator<std::pair<int, int> > > >, long, std::pair<int, int>, __gnu_cxx::__ops::_Iter_comp_iter<LocalSearch::ejection()::{lambda(std::pair<int, int> const&, std::pair<int, int> const&)#1}> >(__gnu_cxx::__normal_iterator<std::pair<int, int>*, std::vector<std::pair<int, int>, std::allocator<std::pair<int, int> > > >, long, long, std::pair<int, int>, __gnu_cxx::__ops::_Iter_comp_iter<LocalSearch::ejection()::{lambda(std::pair<int, int> const&, std::pair<int, int> const&)#1}>) [clone .isra.0]
+     0.00%  test_ails  test_ails             [.] QRVND::applyOrder(std::vector<int, std::allocator<int> > const&)
+     0.00%  test_ails  test_ails             [.] memmove@plt
+     0.00%  test_ails  test_ails             [.] BPPCSolution::removeItemFromBin(int, int)
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::istreambuf_iterator<char, std::char_traits<char> >::equal(std::istreambuf_iterator<char, std::char_traits<char> > const&) const
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::locale::id::_M_id() const@plt
+     0.00%  test_ails  test_ails             [.] std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned long, unsigned long, unsigned long) const@plt
+     0.00%  test_ails  libstdc++.so.6.0.34   [.] std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::do_get(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, long&) const
+     0.00%  test_ails  libc.so.6             [.] _int_free_merge_chunk
+     0.00%  test_ails  ld-linux-x86-64.so.2  [.] do_lookup_x
+     0.00%  test_ails  libc.so.6             [.] __memchr_avx2
+     0.00%  test_ails  test_ails             [.] std::vector<int, std::allocator<int> >* std::__do_uninit_copy<__gnu_cxx::__normal_iterator<std::vector<int, std::allocator<int> > const*, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > >, __gnu_cxx::__normal_iterator<std::vector<int, std::allocator<int> > const*, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > >, std::vector<int, std::allocator<int> >*>(__gnu_cxx::__normal_iterator<std::vector<int, std::allocator<int> > const*, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > >, __gnu_cxx::__normal_iterator<std::vector<int, std::allocator<int> > const*, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > >, std::vector<int, std::allocator<int> >*)
+     0.00%  test_ails  ld-linux-x86-64.so.2  [.] _dl_lookup_symbol_x
+     0.00%  test_ails  ld-linux-x86-64.so.2  [.] _dl_relocate_object_no_relro
+     0.00%  test_ails  ld-linux-x86-64.so.2  [.] _dl_map_object_from_fd
+
+
+#
+# (Tip: For parallelism histogram, try: perf report --hierarchy --sort latency,parallelism,comm,symbol)
+#

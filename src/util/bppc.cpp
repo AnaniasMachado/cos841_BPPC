@@ -7,7 +7,7 @@ using namespace std;
 
 void BPPCInstance::print() const {
     cout << "N = " << N << ", C = " << C << "\n";
-    for (int i = 1; i <= N; i++) {
+    for (int i = 0; i < N; i++) {
         cout << "Item " << i << ": w=" << weights[i] << ", conflicts={ ";
         for (int j : conflicts[i]) {
             cout << j << " ";
@@ -19,7 +19,7 @@ void BPPCInstance::print() const {
 void BPPCInstance::printStatistics() const {
     // Number of edges in the conflict graph
     int edge_count = 0;
-    for (int i = 1; i <= N; i++) {
+    for (int i = 0; i < N; i++) {
         edge_count += conflicts[i].size();
     }
     edge_count /= 2; // Each edge counted twice
@@ -40,8 +40,8 @@ BPPCInstance readInstance(const string& filename) {
     int N, C;
     file >> N >> C;
 
-    vector<int> weights(N + 1, 0);
-    vector<unordered_set<int>> conflicts(N + 1);
+    vector<int> weights(N, 0);
+    vector<unordered_set<int>> conflicts(N);
 
     string line;
     getline(file, line); // consume rest of first line

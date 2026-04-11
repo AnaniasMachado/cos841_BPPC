@@ -2,6 +2,7 @@
 #define LOCAL_SEARCH_HPP
 
 #include "solution.hpp"
+#include <algorithm>
 
 enum class ImprovementType {
     FI,

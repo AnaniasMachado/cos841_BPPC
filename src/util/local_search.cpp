@@ -1,5 +1,4 @@
 #include "local_search.hpp"
-#include <algorithm>
 
 // -------------------- Constructor --------------------
 LocalSearch::LocalSearch(
