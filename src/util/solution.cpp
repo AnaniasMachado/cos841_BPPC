@@ -26,14 +26,13 @@ int BPPCSolution::itemConflicts(int item, int bin_index) const {
     if (bin_index >= (int)bins.size()) return 0;
 
     const auto& bin = bins[bin_index];
+    const auto& row = conflicts[item];
 
     int total = 0;
+
     for (int other : bin) {
         if (other == item) continue;
-
-        if (hasConflict(other, item)) {
-            total++;
-        }
+        total += (row[other >> 6] >> (other & 63)) & 1ULL;
     }
 
     return total;
@@ -147,13 +146,12 @@ int BPPCSolution::computeConflicts() const {
 
         for (int i = 0; i < sz; ++i) {
             int a = bin[i];
+            const auto& row = conflicts[a];
 
             for (int j = i + 1; j < sz; ++j) {
                 int b = bin[j];
 
-                if (hasConflict(a, b)) {
-                    total++;
-                }
+                total += (row[b >> 6] >> (b & 63)) & 1ULL;
             }
         }
     }
@@ -303,16 +301,14 @@ int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
                             int k1, int k2, int k3) const {
     if (bin1 == bin2) return 0;
 
-    int item1 = bins[bin1][idx1];
-    int item2 = bins[bin2][idx2];
+    const int item1 = bins[bin1][idx1];
+    const int item2 = bins[bin2][idx2];
 
-    int d_bins = 0;
+    const int load1_before = bin_loads[bin1];
+    const int load2_before = bin_loads[bin2];
 
-    int load1_before = bin_loads[bin1];
-    int load2_before = bin_loads[bin2];
-
-    int load1_after = load1_before - weights[item1] + weights[item2];
-    int load2_after = load2_before - weights[item2] + weights[item1];
+    const int load1_after = load1_before - weights[item1] + weights[item2];
+    const int load2_after = load2_before - weights[item2] + weights[item1];
 
     int d_excess =
         excessDelta(load1_before, load1_after, C) +
@@ -320,23 +316,33 @@ int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
 
     int d_conflicts = 0;
 
-    // bin1 after swap: item1 -> item2
-    for (int other : bins[bin1]) {
+    const auto& row1 = conflicts[item1];
+    const auto& row2 = conflicts[item2];
+
+    const auto& b1 = bins[bin1];
+    const auto& b2 = bins[bin2];
+
+    for (int other : b1) {
         if (other == item1) continue;
 
-        if (hasConflict(item2, other)) d_conflicts++;
-        if (hasConflict(item1, other)) d_conflicts--;
+        const bool c2 = (row2[other >> 6] & (1ULL << (other & 63)));
+        const bool c1 = (row1[other >> 6] & (1ULL << (other & 63)));
+
+        d_conflicts += c2;
+        d_conflicts -= c1;
     }
 
-    // bin2 after swap: item2 -> item1
-    for (int other : bins[bin2]) {
+    for (int other : b2) {
         if (other == item2) continue;
 
-        if (hasConflict(item1, other)) d_conflicts++;
-        if (hasConflict(item2, other)) d_conflicts--;
+        const bool c1 = (row1[other >> 6] & (1ULL << (other & 63)));
+        const bool c2 = (row2[other >> 6] & (1ULL << (other & 63)));
+
+        d_conflicts += c1;
+        d_conflicts -= c2;
     }
 
-    return k1 * d_bins + k2 * d_excess + k3 * d_conflicts;
+    return k1 * 0 + k2 * d_excess + k3 * d_conflicts;
 }
 
 int BPPCSolution::deltaAddMultiple(
@@ -346,18 +352,16 @@ int BPPCSolution::deltaAddMultiple(
 {
     if (items.empty()) return 0;
 
-    int d_bins = 0;
+    const bool new_bin =
+        (bin_index >= (int)bins.size() || bins[bin_index].empty());
 
-    bool new_bin = (bin_index >= (int)bins.size() || bins[bin_index].empty());
-    if (new_bin) d_bins = 1;
+    int d_bins = new_bin ? 1 : 0;
 
     int load_before =
         (bin_index < (int)bin_loads.size()) ? bin_loads[bin_index] : 0;
 
     int total_weight = 0;
-    for (int item : items) {
-        total_weight += weights[item];
-    }
+    for (int x : items) total_weight += weights[x];
 
     int load_after = load_before + total_weight;
 
@@ -365,25 +369,26 @@ int BPPCSolution::deltaAddMultiple(
 
     int d_conflicts = 0;
 
-    // conflicts with existing bin
-    if (bin_index < (int)bins.size()) {
+    const bool has_bin = (bin_index < (int)bins.size());
+    if (has_bin) {
         const auto& bin = bins[bin_index];
 
         for (int item : items) {
+            const auto& row = conflicts[item];
+
             for (int other : bin) {
-                if (hasConflict(item, other)) {
-                    d_conflicts++;
-                }
+                d_conflicts += (row[other >> 6] >> (other & 63)) & 1ULL;
             }
         }
     }
 
-    // internal conflicts inside inserted items
-    for (int i = 0; i < (int)items.size(); i++) {
-        for (int j = i + 1; j < (int)items.size(); j++) {
-            if (hasConflict(items[i], items[j])) {
-                d_conflicts++;
-            }
+    const int m = (int)items.size();
+    for (int i = 0; i < m; ++i) {
+        const auto& row = conflicts[items[i]];
+
+        for (int j = i + 1; j < m; ++j) {
+            int other = items[j];
+            d_conflicts += (row[other >> 6] >> (other & 63)) & 1ULL;
         }
     }
 
@@ -395,21 +400,17 @@ int BPPCSolution::deltaRemoveMultiple(
     int bin_index,
     int k1, int k2, int k3) const
 {
-    if (bin_index >= (int)bins.size() || items.empty()) return 0;
+    if (bin_index >= (int)bins.size() || items.empty())
+        return 0;
 
     const auto& bin = bins[bin_index];
 
-    int d_bins = 0;
-    if ((int)bin.size() == (int)items.size()) {
-        d_bins = -1;
-    }
+    int d_bins = ((int)bin.size() == (int)items.size()) ? -1 : 0;
 
     int load_before = bin_loads[bin_index];
 
     int total_weight = 0;
-    for (int item : items) {
-        total_weight += weights[item];
-    }
+    for (int x : items) total_weight += weights[x];
 
     int load_after = load_before - total_weight;
 
@@ -417,27 +418,25 @@ int BPPCSolution::deltaRemoveMultiple(
 
     int d_conflicts = 0;
 
-    // build fast lookup mask
-    std::unordered_set<int> subset(items.begin(), items.end());
+    const int W = (N + 63) / 64;
+    std::vector<uint64_t> mask(W, 0ULL);
+
+    for (int x : items)
+        mask[x >> 6] |= (1ULL << (x & 63));
 
     for (int item : items) {
+        const auto& row = conflicts[item];
 
-        // external conflicts
         for (int other : bin) {
-            if (subset.count(other)) continue;
+            if (mask[other >> 6] & (1ULL << (other & 63))) continue;
 
-            if (hasConflict(item, other)) {
-                d_conflicts--;
-            }
+            d_conflicts -= (row[other >> 6] >> (other & 63)) & 1ULL;
         }
 
-        // internal conflicts
         for (int other : items) {
             if (other <= item) continue;
 
-            if (hasConflict(item, other)) {
-                d_conflicts--;
-            }
+            d_conflicts -= (row[other >> 6] >> (other & 63)) & 1ULL;
         }
     }
 

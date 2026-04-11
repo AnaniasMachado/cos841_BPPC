@@ -33,7 +33,7 @@ int main() {
     double c = 0.5718;
 
     // -------------------- Builder selection --------------------
-    BuilderType builder = BuilderType::MFFD;
+    BuilderType builder = BuilderType::RANDOM;
     double beta = 0.2;
 
     // QRVND parameters
