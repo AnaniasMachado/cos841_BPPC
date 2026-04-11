@@ -60,6 +60,7 @@ private:
 
     // UCB parameters
     std::mt19937 rng;
+    std::uniform_int_distribution<> dist;
     bool useUCB;
     double c;
     std::vector<int> perturbation_count;

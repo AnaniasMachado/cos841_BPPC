@@ -12,35 +12,35 @@
 int main() {
     // -------------------- Instance path --------------------
     // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
-    std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_4_8_9.txt";
-    // std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
+    // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_4_8_9.txt";
+    std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
 
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
 
-    int k1 = 130;
-    int k2 = 136;
-    int k3 = 399;
+    int k1 = 226;
+    int k2 = 423;
+    int k3 = 250;
 
     // AILS parameters
-    int max_iterations = 218;
-    int max_no_improve = 24;
+    int max_iterations = 384;
+    int max_no_improve = 22;
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;
 
     // UCB parameters
     bool useUCB = true;
-    double c = 1.0;
+    double c = 0.5718;
 
     // -------------------- Builder selection --------------------
-    BuilderType builder = BuilderType::MFFD;
+    BuilderType builder = BuilderType::RANDOM;
     double beta = 0.2;
 
     // QRVND parameters
     bool useQRVND = true;
-    double alpha = 0.2343;
-    double gamma = 0.9488;
-    double epsilon = 0.4318;
+    double alpha = 0.1495;
+    double gamma = 0.7455;
+    double epsilon = 0.0377;
 
     bool verbose = true;
     double time_limit = 3600.0;

@@ -11,7 +11,7 @@ BPPCSolution::BPPCSolution(int N_items, int bin_capacity,
 {
     bins.clear();
     bin_loads.clear();
-    bin_conflicts.clear();
+    bin_conflicts.clear();;
 }
 
 int BPPCSolution::itemConflicts(int item, int bin_index) const {

@@ -2,16 +2,18 @@ library(irace)
 
 parameters <- readParameters("parameters.txt")
 scenario <- defaultScenario()
-scenario$instances <- read.table("stratified_sample.txt", stringsAsFactors = FALSE)[[1]]
+scenario$instances <- read.table("stratified_sample_shuffled.txt", stringsAsFactors = FALSE)[[1]]
 scenario$parameters <- parameters
 
-scenario$maxExperiments <- 1200
+scenario$maxExperiments <- 25000
 scenario$parallel <- 6
 scenario$debugLevel <- 1
-scenario$logFile <- "irace_progress2.Rdata"
-scenario$recoveryFile <- "irace_progress.Rdata"
+scenario$logFile <- "irace_logFile.Rdata"
+scenario$recoveryFile <- "irace_recoveryFile.Rdata"
 scenario$softRestart <- TRUE
-scenario$firstTest <- 5
+scenario$firstTest <- 6
+scenario$eachTest <- 3
+scenario$deterministic <- 0
 scenario$targetRunner <- "target.R"
 
 # Run irace (it will resume automatically if log exists)

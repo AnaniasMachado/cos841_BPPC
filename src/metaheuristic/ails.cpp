@@ -28,6 +28,7 @@ AILS::AILS(const BPPCInstance& instance,
 {
     std::random_device rd;
     rng = std::mt19937(rd());
+    dist = std::uniform_int_distribution<>(0, 3);
 
     perturbation_count = std::vector<int>(4, 0);
     perturbation_success = std::vector<int>(4, 0);
@@ -91,6 +92,9 @@ PerturbationType AILS::getPerturbationType(int idx) {
 
 // -------------------- Select perturbation --------------------
 PerturbationType AILS::selectPerturbation(int iter) {
+    // Random choice of perturbation
+    if (!useUCB) return getPerturbationType(dist(rng));
+
     // Number of perturbations
     int n = 4;
 
@@ -144,7 +148,6 @@ void AILS::updateUCB(PerturbationType perturbation_type, bool reward) {
         case PerturbationType::MERGEK: p = 2; break;
         case PerturbationType::SPLITK: p = 3; break;
     }
-
     ++perturbation_count[p];
     if (reward) ++perturbation_success[p];
 }
@@ -239,10 +242,10 @@ BPPCSolution AILS::run() {
         if (cand_obj < best_obj) {
             best = candidate;
             no_improve = 0;
-            if (useUCB) updateUCB(perturbation_type, true);
+            if (useUCB || verbose) updateUCB(perturbation_type, true);
         } else {
             no_improve++;
-            if (useUCB) updateUCB(perturbation_type, false);
+            if (useUCB || verbose) updateUCB(perturbation_type, false);
         }
 
         // ---- Update CURRENT based on acceptance policy ----
