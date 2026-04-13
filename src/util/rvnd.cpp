@@ -13,28 +13,39 @@ RVND::RVND(BPPCSolution& solution, ImprovementType improvement_type_,
 
 // -------------------- RVND --------------------
 void RVND::run() {
-    // Shuffle permutation/order of neighborhoods
-    std::vector<int> neighborhoods = {0, 1, 2};
-    std::shuffle(neighborhoods.begin(), neighborhoods.end(), rng);
 
-    bool improved = true;
-    
-    while (improved) {
-        improved = false;
+    // Initial random permutation p[r]
+    std::vector<int> p = {0, 1, 2, 3};
+    std::shuffle(p.begin(), p.end(), rng);
 
-        for (int n : neighborhoods) {
-            bool local_improved = false;
-            
-            switch(n) {
-                case 0: local_improved = ls.relocation(); break;
-                case 1: local_improved = ls.exchange();   break;
-                case 2: local_improved = ls.ejection();   break;
-            }
+    int k = 0;
+    bool improved_global = false;
 
-            if (local_improved) {
-                improved = true;
-            }
+    // RVND loop
+    while (k < (int)p.size()) {
+
+        bool local_improved = false;
+
+        switch (p[k]) {
+            case 0: local_improved = ls.relocation();      break;
+            case 1: local_improved = ls.exchange();        break;
+            case 2: local_improved = ls.ejectionGlobal();  break;
+            case 3: local_improved = ls.setCovering();     break;
         }
+
+        if (local_improved) {
+            improved_global = true;
+
+            // Restart RVND
+            k = 0;
+
+        } else {
+            k++;
+        }
+    }
+
+    if (improved_global) {
+        ls.updatePool();
     }
 }
 

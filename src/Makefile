@@ -2,6 +2,10 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -O2 -Wall
 
+# -------------------- HiGHS --------------------
+HIGHS_INC = -I/usr/include/highs
+HIGHS_LIB = -lhighs
+
 # -------------------- Directories --------------------
 UTIL_DIR = util
 MT_DIR = metaheuristic
@@ -29,7 +33,7 @@ TEST_SRCS = $(TEST_DIR)/test_bppc.cpp \
             $(TEST_DIR)/test_perturbations.cpp \
             $(TEST_DIR)/test_ails.cpp \
             $(TEST_DIR)/test_builder.cpp
-            
+
 # -------------------- Object files --------------------
 UTIL_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(UTIL_SRCS)))
 MT_OBJS   = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(MT_SRCS)))
@@ -44,23 +48,23 @@ all: $(TEST_BINS) $(AUX_BIN)
 
 # -------------------- Compile utility objects --------------------
 $(BIN_DIR)/%.o: $(UTIL_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) -c $< -o $@
 
 # -------------------- Compile metaheuristic objects --------------------
 $(BIN_DIR)/%.o: $(MT_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) -c $< -o $@
 
 # -------------------- Compile test objects --------------------
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) -c $< -o $@
 
 # -------------------- Link test executables --------------------
 $(BIN_DIR)/%: $(BIN_DIR)/%.o $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(HIGHS_LIB)
 
 # -------------------- Link AILS runner --------------------
 $(AUX_BIN): $(UTIL_DIR)/ails_runner.cpp $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $(UTIL_DIR)/ails_runner.cpp $(UTIL_OBJS) $(MT_OBJS) -o $(AUX_BIN)
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $^ -o $@ $(HIGHS_LIB)
 
 # -------------------- Ensure bin exists --------------------
 $(BIN_DIR):

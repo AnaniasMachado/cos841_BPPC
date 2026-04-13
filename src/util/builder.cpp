@@ -29,7 +29,9 @@ BPPCSolution SolutionBuilder::MFFD() {
             bool conflict = false;
 
             for (int other : sol.bins[bin_idx]) {
-                if (inst.conflicts[item].count(other)) {
+
+                // BITSET CONFLICT CHECK
+                if (inst.conflicts[item][other >> 6] & (1ULL << (other & 63))) {
                     conflict = true;
                     break;
                 }
@@ -73,7 +75,9 @@ BPPCSolution SolutionBuilder::randomFeasible() {
             bool conflict = false;
 
             for (int other : sol.bins[bin_idx]) {
-                if (inst.conflicts[item].count(other)) {
+
+                // BITSET CONFLICT CHECK
+                if (inst.conflicts[item][other >> 6] & (1ULL << (other & 63))) {
                     conflict = true;
                     break;
                 }

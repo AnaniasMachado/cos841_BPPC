@@ -4,19 +4,10 @@ BPPCSolution::BPPCSolution(
     int N_items,
     int bin_capacity,
     const std::vector<int>& item_weights,
-    const std::vector<std::unordered_set<int>>& item_conflicts)
-    : N(N_items), C(bin_capacity), weights(item_weights),
+    const std::vector<Bitset>& item_conflicts)
+    : N(N_items), C(bin_capacity), weights(item_weights), conflicts(item_conflicts),
       bins_used(0), excess_weight(0), conflicts_count(0)
 {
-    int W = (N + 63) / 64;
-    conflicts.assign(N, Bitset(W, 0ULL));
-
-    for (int i = 0; i < N; ++i) {
-        for (int j : item_conflicts[i]) {
-            conflicts[i][j >> 6] |= (1ULL << (j & 63));
-        }
-    }
-
     bins.clear();
     bin_loads.clear();
     bin_conflicts.clear();
@@ -127,6 +118,71 @@ void BPPCSolution::swapItems(int bin1, int idx1, int bin2, int idx2) {
 
     addItemToBin(item1, bin2);
     addItemToBin(item2, bin1);
+}
+
+void BPPCSolution::rebuildSolutionFromBins(
+    const std::vector<std::vector<int>>& new_bins)
+{
+    bins = new_bins;
+
+    const int m = static_cast<int>(bins.size());
+
+    bins_used = 0;
+    conflicts_count = 0;
+    excess_weight = 0;
+
+    bin_loads.assign(m, 0);
+    bin_conflicts.assign(m, 0);
+    bad_bins.clear();
+
+    for (int b = 0; b < m; b++) {
+
+        const auto& bin = bins[b];
+        if (bin.empty()) continue;
+
+        bins_used++;
+
+        int new_bin_load = 0;
+        int new_bin_conflict = 0;
+
+        // -------------------- compute load --------------------
+        for (int item : bin) {
+            new_bin_load += weights[item];
+        }
+
+        // -------------------- compute conflicts --------------------
+        const int bsz = static_cast<int>(bin.size());
+
+        for (int i = 0; i < bsz; i++) {
+
+            const int a = bin[i];
+            const auto& rowA = conflicts[a];
+
+            for (int j = i + 1; j < bsz; j++) {
+
+                const int b_item = bin[j];
+
+                // INLINE version of hasConflict(a, b_item)
+                if (rowA[b_item >> 6] & (1ULL << (b_item & 63))) {
+                    new_bin_conflict++;
+                }
+            }
+        }
+
+        bin_loads[b] = new_bin_load;
+        bin_conflicts[b] = new_bin_conflict;
+
+        conflicts_count += new_bin_conflict;
+
+        int excess = std::max(0, new_bin_load - C);
+        excess_weight += excess;
+
+        if (excess > 0 || new_bin_conflict > 0) {
+            bad_bins.insert(b);
+        }
+    }
+
+    // sanityCheck();
 }
 
 int BPPCSolution::computeExcessWeight() const {

@@ -2,14 +2,14 @@
 #define BPPC_H
 
 #include <vector>
-#include <unordered_set>
 #include <string>
+#include <cstdint>
 
 struct BPPCInstance {
     int N;
     int C;
     std::vector<int> weights;
-    std::vector<std::unordered_set<int>> conflicts;
+    std::vector<std::vector<uint64_t>> conflicts;
 
     void print() const;
 

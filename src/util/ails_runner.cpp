@@ -7,7 +7,6 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <unordered_set>
 #include <string>
 #include <climits>
 
@@ -67,42 +66,42 @@ int main(int argc, char* argv[]) {
 
         if (arg == "--max_it" && i + 1 < argc) {
             max_iterations = std::stoi(argv[++i]);
-        } 
+        }
         else if (arg == "--max_no_imp" && i + 1 < argc) {
             max_no_improve = std::stoi(argv[++i]);
-        } 
+        }
         else if (arg == "--acceptance" && i + 1 < argc) {
             acceptance = parseAcceptance(argv[++i]);
         }
         else if (arg == "--improvement" && i + 1 < argc) {
             improvement = parseImprovement(argv[++i]);
-        } 
+        }
         else if (arg == "--use_ucb" && i + 1 < argc) {
             useUCB = std::stoi(argv[++i]) != 0;
-        } 
+        }
         else if (arg == "--c" && i + 1 < argc) {
             c = std::stod(argv[++i]);
-        } 
+        }
         else if (arg == "--builder" && i + 1 < argc) {
             builder = parseBuilder(argv[++i]);
-        } 
+        }
         else if (arg == "--beta" && i + 1 < argc) {
             beta = std::stod(argv[++i]);
-        } 
+        }
         else if (arg == "--use_qrvnd" && i + 1 < argc) {
             useQRVND = std::stoi(argv[++i]) != 0;
-        } 
+        }
         else if (arg == "--alpha" && i + 1 < argc) {
             alpha = std::stod(argv[++i]);
-        } 
+        }
         else if (arg == "--gamma" && i + 1 < argc) {
             gamma = std::stod(argv[++i]);
-        } 
+        }
         else if (arg == "--epsilon" && i + 1 < argc) {
             epsilon = std::stod(argv[++i]);
         }
         else if (arg == "--time_limit" && i + 1 < argc) {
-        time_limit = std::stod(argv[++i]);
+            time_limit = std::stod(argv[++i]);
         }
         else if (arg == "--verbose" && i + 1 < argc) {
             verbose = std::stoi(argv[++i]) != 0;
@@ -120,7 +119,9 @@ int main(int argc, char* argv[]) {
     fin >> N >> C;
 
     std::vector<int> weights(N, 0);
-    std::vector<std::unordered_set<int>> conflicts(N);
+
+    // -------------------- TEMP: store conflicts as edge list --------------------
+    std::vector<std::vector<int>> temp_conflicts(N);
 
     std::string line;
     std::getline(fin, line);
@@ -131,28 +132,44 @@ int main(int argc, char* argv[]) {
         std::stringstream ss(line);
         int item_index, w;
         ss >> item_index >> w;
-        item_index--;
+
+        item_index--; // convert to 0-based
         weights[item_index] = w;
 
         int conflict_item;
         while (ss >> conflict_item) {
-            conflict_item--;
-            conflicts[item_index].insert(conflict_item);
-            conflicts[conflict_item].insert(item_index);
+            conflict_item--; // convert to 0-based
+
+            temp_conflicts[item_index].push_back(conflict_item);
+            temp_conflicts[conflict_item].push_back(item_index);
         }
     }
+
     fin.close();
 
+    // -------------------- Convert to bitset representation --------------------
+    using Bitset = std::vector<uint64_t>;
+    int W = (N + 63) / 64;
+
+    std::vector<Bitset> conflicts(N, Bitset(W, 0ULL));
+
+    for (int i = 0; i < N; i++) {
+        for (int j : temp_conflicts[i]) {
+            conflicts[i][j >> 6] |= (1ULL << (j & 63));
+        }
+    }
+
+    // -------------------- Build BPPC instance --------------------
     BPPCInstance inst{N, C, weights, conflicts};
 
     // -------------------- Run AILS --------------------
     AILS ails(inst, K1, K2, K3,
-          max_iterations, max_no_improve,
-          acceptance, improvement,
-          useUCB, c,
-          builder, beta, useQRVND,
-          alpha, gamma, epsilon,
-          verbose, time_limit);
+              max_iterations, max_no_improve,
+              acceptance, improvement,
+              useUCB, c,
+              builder, beta, useQRVND,
+              alpha, gamma, epsilon,
+              verbose, time_limit);
 
     BPPCSolution sol = ails.run();
 

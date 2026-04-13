@@ -21,7 +21,7 @@ public:
 
     BPPCSolution(int N_items, int bin_capacity,
                 const std::vector<int>& item_weights,
-                const std::vector<std::unordered_set<int>>& item_conflicts);
+                const std::vector<Bitset>& item_conflicts);
 
     // Get number of conflits of an item in a bin
     int itemConflicts(int item, int bin_index) const;
@@ -37,6 +37,9 @@ public:
 
     // Swap items between two bins
     void swapItems(int bin1, int idx1, int bin2, int idx2);
+
+    // Rebuild solution from bins
+    void rebuildSolutionFromBins(const std::vector<std::vector<int>>& new_bins);
 
     // Compute objective function with given weights
     int computeObjective(int k1, int k2, int k3) const;

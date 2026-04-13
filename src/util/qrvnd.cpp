@@ -17,10 +17,17 @@ QRVND::QRVND(BPPCSolution& solution, ImprovementType improvement_type_,
     initialized = false;
     current_p = 0;
 
+    // perms = {
+    //     {0,1,2},{0,2,1},
+    //     {1,0,2},{1,2,0},
+    //     {2,0,1},{2,1,0}
+    // };
+
     perms = {
-        {0,1,2},{0,2,1},
-        {1,0,2},{1,2,0},
-        {2,0,1},{2,1,0}
+        {0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,2,3,1}, {0,3,1,2}, {0,3,2,1},
+        {1,0,2,3}, {1,0,3,2}, {1,2,0,3}, {1,2,3,0}, {1,3,0,2}, {1,3,2,0},
+        {2,0,1,3}, {2,0,3,1}, {2,1,0,3}, {2,1,3,0}, {2,3,0,1}, {2,3,1,0},
+        {3,0,1,2}, {3,0,2,1}, {3,1,0,2}, {3,1,2,0}, {3,2,0,1}, {3,2,1,0}
     };
 
     Q = std::vector<std::vector<double>>(
@@ -47,29 +54,35 @@ int QRVND::selectPermutation(int current_p) {
 
 // -------------------- Apply ONE RVND --------------------
 bool QRVND::applyOrder(const std::vector<int>& order) {
+
     bool improved_global = false;
 
-    std::vector<int> remaining = order;
+    std::vector<int> c = order;  // Permutation p[r]
+    int k = 0;
 
-    while (!remaining.empty()) {
-
-        int n = remaining.front();
-        remaining.erase(remaining.begin());
+    while (k < (int)c.size()) {
 
         bool improved = false;
 
-        switch(n) {
-            case 0: improved = ls.relocation(); break;
-            case 1: improved = ls.exchange();   break;
-            case 2: improved = ls.ejection();   break;
+        switch (c[k]) {
+            case 0: improved = ls.relocation();      break;
+            case 1: improved = ls.exchange();        break;
+            case 2: improved = ls.ejectionGlobal();  break;
+            case 3: improved = ls.setCovering();     break;
         }
 
         if (improved) {
             improved_global = true;
 
-            // Reset to full order
-            remaining = order;
+            // Restart RVND
+            k = 0;
+        } else {
+            k++;
         }
+    }
+
+    if (improved_global) {
+        ls.updatePool();
     }
 
     return improved_global;

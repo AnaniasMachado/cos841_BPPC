@@ -7,27 +7,38 @@ using namespace std;
 
 void BPPCInstance::print() const {
     cout << "N = " << N << ", C = " << C << "\n";
+
     for (int i = 0; i < N; i++) {
         cout << "Item " << i << ": w=" << weights[i] << ", conflicts={ ";
-        for (int j : conflicts[i]) {
-            cout << j << " ";
+
+        for (int j = 0; j < N; j++) {
+            int word = j >> 6;
+            int bit = j & 63;
+
+            if (conflicts[i][word] & (1ULL << bit)) {
+                cout << j << " ";
+            }
         }
+
         cout << "}\n";
     }
 }
 
 void BPPCInstance::printStatistics() const {
-    // Number of edges in the conflict graph
-    int edge_count = 0;
-    for (int i = 0; i < N; i++) {
-        edge_count += conflicts[i].size();
-    }
-    edge_count /= 2; // Each edge counted twice
+    long long edge_count = 0;
 
-    std::cout << "Instance statistics:\n";
-    std::cout << "Number of items (N): " << N << "\n";
-    std::cout << "Bin capacity (C): " << C << "\n";
-    std::cout << "Number of conflicts (|E|): " << edge_count << "\n";
+    for (int i = 0; i < N; i++) {
+        for (uint64_t w : conflicts[i]) {
+            edge_count += __builtin_popcountll(w);
+        }
+    }
+
+    edge_count /= 2;
+
+    cout << "Instance statistics:\n";
+    cout << "Number of items (N): " << N << "\n";
+    cout << "Bin capacity (C): " << C << "\n";
+    cout << "Number of conflicts (|E|): " << edge_count << "\n";
 }
 
 BPPCInstance readInstance(const string& filename) {
@@ -41,26 +52,28 @@ BPPCInstance readInstance(const string& filename) {
     file >> N >> C;
 
     vector<int> weights(N, 0);
-    vector<unordered_set<int>> conflicts(N);
 
-    string line;
-    getline(file, line); // consume rest of first line
+    int W = (N + 63) / 64;
+    vector<vector<uint64_t>> conflicts(N, vector<uint64_t>(W, 0ULL));
 
-    while (getline(file, line)) {
-        if (line.empty()) continue;
-
-        stringstream ss(line);
-        int i, w;
-        ss >> i >> w;
+    int i, w;
+    while (file >> i >> w) {
         i--;
 
         weights[i] = w;
 
         int a;
+        string line;
+        getline(file, line);
+        stringstream ss(line);
+
         while (ss >> a) {
             a--;
-            conflicts[i].insert(a);
-            conflicts[a].insert(i);
+
+            if (a < 0 || a >= N) continue;
+
+            conflicts[i][a >> 6] |= (1ULL << (a & 63));
+            conflicts[a][i >> 6] |= (1ULL << (i & 63));
         }
     }
 
