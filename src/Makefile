@@ -32,7 +32,8 @@ TEST_SRCS = $(TEST_DIR)/test_bppc.cpp \
             $(TEST_DIR)/test_local_search.cpp \
             $(TEST_DIR)/test_perturbations.cpp \
             $(TEST_DIR)/test_ails.cpp \
-            $(TEST_DIR)/test_builder.cpp
+            $(TEST_DIR)/test_builder.cpp \
+            $(TEST_DIR)/test_assignment.cpp
 
 # -------------------- Object files --------------------
 UTIL_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(UTIL_SRCS)))

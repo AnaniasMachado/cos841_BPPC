@@ -24,6 +24,7 @@ int main() {
 
     // AILS parameters
     int max_iterations = 384;
+    // int max_no_improve = 22;
     int max_no_improve = 22;
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;

@@ -86,7 +86,7 @@ public:
     bool ejectionGlobal();
     int hungarian(const std::vector<std::vector<int>>& cost,
                     std::vector<int>& assignment);
-    bool assignment();
+    bool assignment(int N_ASSIGN);
     bool setCovering();
 
     void updateK();

@@ -69,7 +69,7 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
             case 0: improved = ls.relocation();      break;
             case 1: improved = ls.exchange();        break;
             case 2: improved = ls.ejectionGlobal();  break;
-            case 3: improved = ls.assignment();      break;
+            case 3: improved = ls.assignment((int)sol->N / 5);      break;
         }
 
         if (improved) {
@@ -85,15 +85,17 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         }
     }
 
-    if (iter % 5 == 0 && iter != 0) {
-        bool sc_improve = true;
-        while (sc_improve) {
-            sc_improve = ls.setCovering();
-            if (sc_improve) {
-                ls.updateK();
-                ls.updateElite(*sol);
-            }
-        }
+    if (iter % 5 == 0 && iter >= 15) {
+        // bool sc_improve = true;
+        // while (sc_improve) {
+        //     sc_improve = ls.setCovering();
+        //     if (sc_improve) {
+        //         ls.updateK();
+        //         ls.updateElite(*sol);
+        //     }
+        // }
+        bool sc_improve = ls.setCovering();
+        if (sc_improve) improved_global = true;
     }
 
     if (improved_global) {

@@ -12,12 +12,16 @@ LocalSearch::LocalSearch(BPPCSolution& solution,
 
     K = sol->bins_used;
     best_obj = sol->computeObjective(K1, K2, K3);
-    // S_pool = std::max(100, (int)(2.5 * K));
-    // S_min = std::max(75, (int)(2.0 * K));
-    // S_max = std::max(150, (int)(3.0 * K));
-    S_pool = std::max(100, (int)(5.0 * K));
-    S_min = std::max(75, (int)(7.5 * K));
-    S_max = std::max(150, (int)(9.0 * K));
+    S_pool = std::max(100, (int)(4.5 * K));
+    S_min = std::max(75, (int)(4.0 * K));
+    S_max = std::max(150, (int)(5.0 * K));
+    // S_pool = std::max(100, (int)(7.5 * K));
+    // S_min = std::max(75, (int)(5.0 * K));
+    // S_max = std::max(150, (int)(9.0 * K));
+
+    std::cout << "S_pool: " << S_pool << "\n";
+    std::cout << "S_min: " << S_min << "\n";
+    std::cout << "S_max: " << S_max << "\n";
 
     pool.clear();
 }
@@ -723,13 +727,12 @@ int LocalSearch::hungarian(
 }
 
 // -------------------- Assignment (delta version) --------------------
-bool LocalSearch::assignment() {
+bool LocalSearch::assignment(int N_ASSIGN) {
 
     if (sol->bad_bins.empty()) {
         return false;
     }
 
-    const int N_ASSIGN = 9;
     const int EPS = 1;
 
     auto rand_int = [&](int l, int r) {
@@ -751,9 +754,6 @@ bool LocalSearch::assignment() {
     // -------------------- Build item set --------------------
     std::vector<int> items;
     std::vector<int> froms;
-
-    items.reserve(N_ASSIGN + 1);
-    froms.reserve(N_ASSIGN + 1);
 
     items.push_back(pivot_item);
     froms.push_back(pivot_bin);
@@ -789,15 +789,24 @@ bool LocalSearch::assignment() {
     int n = (int)items.size();
     if (n <= 1) return false;
 
-    // -------------------- Cost matrix --------------------
+    // -------------------- Build temp solution (remove all) --------------------
+    BPPCSolution temp = *sol;
+
+    for (int i = 0; i < n; i++) {
+        temp.removeItemFromBin(items[i], froms[i]);
+    }
+
+    // -------------------- Cost matrix (holes model) --------------------
     std::vector<std::vector<int>> cost(n, std::vector<int>(n));
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
 
-            int bin_j = froms[j];
-
-            cost[i][j] = sol->deltaAdd(items[i], bin_j, K1, K2, K3);
+            cost[i][j] = temp.deltaAdd(
+                items[i],
+                froms[j],
+                K1, K2, K3
+            );
 
             if (items[i] == pivot_item && i == j) {
                 cost[i][j] += EPS;
@@ -806,35 +815,41 @@ bool LocalSearch::assignment() {
     }
 
     // -------------------- Hungarian --------------------
-    std::vector<int> assignment;
-    hungarian(cost, assignment);
+    std::vector<int> assign;
+    hungarian(cost, assign);
 
-    // -------------------- Delta --------------------
-    int delta = 0;
+    // -------------------- Reject identity --------------------
+    bool identity = true;
+    for (int i = 0; i < n; i++) {
+        if (assign[i] != i) {
+            identity = false;
+            break;
+        }
+    }
+    if (identity) return false;
+
+    // -------------------- Build new solution --------------------
+    BPPCSolution candidate = temp;
 
     for (int i = 0; i < n; i++) {
-        delta += sol->deltaRemove(items[i], froms[i], K1, K2, K3);
+        int item = items[i];
+        int to   = froms[assign[i]];
+
+        candidate.addItemToBin(item, to);
     }
 
-    for (int i = 0; i < n; i++) {
-        delta += sol->deltaAdd(items[i], froms[assignment[i]], K1, K2, K3);
-    }
+    candidate.removeEmptyBins();
 
-    // -------------------- Apply move --------------------
-    if (delta < 0) {
+    // -------------------- Compare objective --------------------
+    int obj_before = sol->computeObjective(K1, K2, K3);
+    int obj_after  = candidate.computeObjective(K1, K2, K3);
 
-        std::vector<std::tuple<int,int,int>> moves;
-        moves.reserve(n);
+    // std::cout << "obj_before: " << obj_before << "\n";
+    // std::cout << "obj_after : " << obj_after  << "\n";
 
-        for (int i = 0; i < n; i++) {
-            moves.emplace_back(items[i], froms[i], froms[assignment[i]]);
-        }
-
-        for (auto [item, from, to] : moves) {
-            sol->moveItem(item, from, to);
-        }
-
-        sol->removeEmptyBins();
+    // -------------------- Accept if improving --------------------
+    if (obj_after < obj_before) {
+        *sol = candidate;
         return true;
     }
 
@@ -849,7 +864,7 @@ bool LocalSearch::setCovering() {
         if (verbose) std::cout << msg << "\n";
     };
 
-    const int TIME_LIMIT_MS = 500;
+    const int TIME_LIMIT_MS = 60000;
 
     log("\n[SC] START setCovering()");
 
@@ -951,12 +966,16 @@ bool LocalSearch::setCovering() {
     highs.passModel(lp);
     highs.setOptionValue("output_flag", false);
     highs.setOptionValue("log_to_console", false);
-    // highs.setOptionValue("time_limit", TIME_LIMIT_MS / 1000.0);
+    highs.setOptionValue("time_limit", TIME_LIMIT_MS / 1000.0);
     // highs.setOptionValue("presolve", "off");
 
     log("[SC] calling HiGHS...");
 
     const HighsStatus status = highs.run();
+
+    if (status == HighsStatus::kWarning) {
+        log("[SC] WARNING status (possibly time limit)");
+    }
 
     if (status != HighsStatus::kOk) {
         log("[SC] solver error");
@@ -984,8 +1003,27 @@ bool LocalSearch::setCovering() {
             log("[SC] ERROR: load error");
             return false;
 
-        default:
+        case HighsModelStatus::kOptimal:
+            log("[SC] optimal solution found");
             break;
+
+        case HighsModelStatus::kTimeLimit: {
+            log("[SC] time limit reached (non-optimal solution)");
+
+            double gap = highs.getInfo().mip_gap;
+            log("[SC] MIP gap = " + std::to_string(gap));
+            break;
+        }
+
+        default:
+            log("[SC] other status: " + std::to_string((int)model_status));
+            break;
+    }
+
+    if (!highs.getSolution().value_valid) {
+        log("[SC] No feasible solution found within time.");
+        updatePoolSize(false);
+        return false;
     }
 
     const auto& soln = highs.getSolution();
@@ -1318,15 +1356,66 @@ void LocalSearch::updatePoolSize(bool optimal_solved) {
     S_pool = std::min(S_pool, S_max);
 }
 
+// std::vector<std::vector<int>> LocalSearch::repairSolution(
+//     const std::vector<std::vector<int>>& input_bins)
+// {
+//     const int n_items = sol->N;
+
+//     // ---- Copy bins ----
+//     std::vector<std::vector<int>> bins = input_bins;
+
+//     // ---- Track occurrences ----
+//     std::vector<std::vector<int>> item_bins(n_items);
+
+//     for (int b = 0; b < (int)bins.size(); b++) {
+//         for (int item : bins[b]) {
+//             item_bins[item].push_back(b);
+//         }
+//     }
+
+//     // ---- Resolve duplicates ----
+//     for (int item = 0; item < n_items; item++) {
+
+//         auto& containing_bins = item_bins[item];
+
+//         if ((int)containing_bins.size() <= 1)
+//             continue;
+
+//         // ---- Randomly choose one bin to keep ----
+//         int keep_idx = containing_bins[rng() % containing_bins.size()];
+
+//         // ---- Remove from all other bins ----
+//         for (int b : containing_bins) {
+//             if (b == keep_idx) continue;
+
+//             auto& bin = bins[b];
+
+//             // remove item from bin
+//             bin.erase(std::remove(bin.begin(), bin.end(), item), bin.end());
+//         }
+//     }
+
+//     // ---- Remove empty bins ----
+//     std::vector<std::vector<int>> result;
+//     result.reserve(bins.size());
+
+//     for (auto& b : bins) {
+//         if (!b.empty()) {
+//             result.push_back(std::move(b));
+//         }
+//     }
+
+//     return result;
+// }
+
 std::vector<std::vector<int>> LocalSearch::repairSolution(
     const std::vector<std::vector<int>>& input_bins)
 {
-    const int n_items = sol->N;
-
-    // ---- Copy bins ----
     std::vector<std::vector<int>> bins = input_bins;
 
-    // ---- Track occurrences ----
+    const int n_items = sol->N;
+
+    // Build item to bins structure
     std::vector<std::vector<int>> item_bins(n_items);
 
     for (int b = 0; b < (int)bins.size(); b++) {
@@ -1335,39 +1424,71 @@ std::vector<std::vector<int>> LocalSearch::repairSolution(
         }
     }
 
-    // ---- Resolve duplicates ----
-    for (int item = 0; item < n_items; item++) {
-
-        auto& containing_bins = item_bins[item];
-
-        if ((int)containing_bins.size() <= 1)
-            continue;
-
-        // ---- Randomly choose one bin to keep ----
-        int keep_idx = containing_bins[rng() % containing_bins.size()];
-
-        // ---- Remove from all other bins ----
-        for (int b : containing_bins) {
-            if (b == keep_idx) continue;
-
-            auto& bin = bins[b];
-
-            // remove item from bin
-            bin.erase(std::remove(bin.begin(), bin.end(), item), bin.end());
+    // Extract duplicated items only
+    std::vector<int> dup_items;
+    for (int i = 0; i < n_items; i++) {
+        if (item_bins[i].size() > 1) {
+            dup_items.push_back(i);
         }
     }
 
-    // ---- Remove empty bins ----
-    std::vector<std::vector<int>> result;
-    result.reserve(bins.size());
+    // Best solution tracking
+    std::vector<std::vector<int>> best_bins;
+    int best_cost = std::numeric_limits<int>::max();
 
-    for (auto& b : bins) {
-        if (!b.empty()) {
-            result.push_back(std::move(b));
+    // DFS recursion
+    std::function<void(int)> dfs = [&](int idx)
+    {
+        // Leaf: all duplicates resolved
+        if (idx == (int)dup_items.size()) {
+
+            int cost = 0;
+            for (auto& b : bins)
+                if (!b.empty()) cost++;
+
+            if (cost < best_cost) {
+                best_cost = cost;
+                best_bins = bins;
+            }
+
+            return;
         }
-    }
 
-    return result;
+        int item = dup_items[idx];
+        const auto& cand_bins = item_bins[item];
+
+        // Try each bin as "keep bin"
+        for (int keep_bin : cand_bins) {
+
+            // Store removed positions for rollback
+            std::vector<std::pair<int, int>> removed;
+
+            // Remove item from all other bins
+            for (int b : cand_bins) {
+                if (b == keep_bin) continue;
+
+                auto& bin = bins[b];
+
+                auto it = std::find(bin.begin(), bin.end(), item);
+                if (it != bin.end()) {
+                    bin.erase(it);
+                    removed.push_back({b, item});
+                }
+            }
+
+            dfs(idx + 1);
+
+            // Rollback
+            for (auto& [b, val] : removed) {
+                bins[b].push_back(val);
+            }
+        }
+    };
+
+    // Run DP/DFS
+    dfs(0);
+
+    return best_bins;
 }
 
 BPPCSolution LocalSearch::destroyRepair() {
