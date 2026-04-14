@@ -38,11 +38,18 @@ private:
         size_t hash;
     };
 
+    int K;
+    int best_obj;
+
     std::deque<PoolEntry> pool;
     std::unordered_set<size_t> seen;
     int S_pool;
     int S_min;
     int S_max;
+
+    std::vector<std::vector<int>> elite_bins;
+    std::unordered_set<size_t> elite_hashes;
+    size_t elite_solution_hash = 0; 
 
     std::unordered_set<size_t> tabu_solutions;
     size_t last_solution_hash = 0;
@@ -55,11 +62,17 @@ private:
     std::mt19937 rng;
 
     int computeObjective(const BPPCSolution& s) const;
+    size_t hash_bin(const std::vector<int>& bin) const;
     size_t hash_solution(const std::vector<std::vector<int>>& bins) const;
     size_t hash_pool() const;
+    void addColumn(Column&& col, int n_items);
+    double jaccard(const std::vector<int>& a, const std::vector<int>& b) const;
+    void trimPool();
     bool isTabu(size_t h);
     void addTabu(size_t h);
     void updatePoolSize(bool optimal_solved);
+    std::vector<std::vector<int>> repairSolution(
+        const std::vector<std::vector<int>>& input_bins);
 
 public:
     LocalSearch(BPPCSolution& solution, ImprovementType improvement, int k1, int k2, int k3);
@@ -75,7 +88,14 @@ public:
                     std::vector<int>& assignment);
     bool assignment();
     bool setCovering();
+
+    void updateK();
+    void updateElite(const BPPCSolution& candidate);
+
     void updatePool();
+    void addToPool(const BPPCSolution& s);
+    
+    BPPCSolution destroyRepair();
 
     void setSolution(BPPCSolution& solution);
 };

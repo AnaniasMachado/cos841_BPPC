@@ -10,10 +10,14 @@ LocalSearch::LocalSearch(BPPCSolution& solution,
 {
     rng.seed(std::random_device{}());
 
-    const int K = (int)solution.bins.size();
-    S_pool = std::max(100, (int)(2.5 * K));
-    S_min = std::max(75, (int)(2.0 * K));
-    S_max = std::max(150, (int)(3.0 * K));
+    K = sol->bins_used;
+    best_obj = sol->computeObjective(K1, K2, K3);
+    // S_pool = std::max(100, (int)(2.5 * K));
+    // S_min = std::max(75, (int)(2.0 * K));
+    // S_max = std::max(150, (int)(3.0 * K));
+    S_pool = std::max(100, (int)(5.0 * K));
+    S_min = std::max(75, (int)(7.5 * K));
+    S_max = std::max(150, (int)(9.0 * K));
 
     pool.clear();
 }
@@ -839,7 +843,7 @@ bool LocalSearch::assignment() {
 
 // -------------------- Set Covering --------------------
 bool LocalSearch::setCovering() {
-    bool verbose = false;
+    bool verbose = true;
 
     auto log = [&](const std::string& msg) {
         if (verbose) std::cout << msg << "\n";
@@ -849,7 +853,7 @@ bool LocalSearch::setCovering() {
 
     log("\n[SC] START setCovering()");
 
-    updatePool();
+    std::shuffle(pool.begin(), pool.end(), rng);
 
     if (pool.empty()) {
         log("[SC] FAILED: empty pool");
@@ -858,12 +862,11 @@ bool LocalSearch::setCovering() {
 
     const int n_items = sol->N;
     const int n_cols  = (int)pool.size();
+    int K_upper = K;
 
     // ---------------- ADAPTIVE K ----------------
-    int K = (int)sol->bins.size();
-
-    if (sol->isFeasible() && K > 1) {
-        K -= 1;
+    if (sol->isFeasible() && K_upper > 1) {
+        K_upper -= 1;
         log("[SC] MODE: compression (K-1)");
     } else {
         log("[SC] MODE: repair (K)");
@@ -871,7 +874,23 @@ bool LocalSearch::setCovering() {
 
     log("[SC] n_items=" + std::to_string(n_items) +
         " n_cols=" + std::to_string(n_cols) +
-        " K=" + std::to_string(K));
+        " K-1=" + std::to_string(K_upper));
+
+    std::vector<bool> covered(n_items, false);
+
+    for (int j = 0; j < n_cols; j++) {
+        for (int i = 0; i < n_items; i++) {
+            if (pool[j].col.mask[i]) {
+                covered[i] = true;
+            }
+        }
+    }
+
+    for (int i = 0; i < n_items; i++) {
+        if (!covered[i]) {
+            std::cout << "[SC ERROR] item " << i << " not coverable!\n";
+        }
+    }
 
     Highs highs;
     HighsLp lp;
@@ -891,18 +910,12 @@ bool LocalSearch::setCovering() {
         lp.col_cost_[j] = pool[j].col.cost;
     }
 
-    // const double LAMBDA = 1.0;
-
-    // for (int j = 0; j < n_cols; j++) {
-    //     lp.col_cost_[j] = pool[j].col.cost + LAMBDA;
-    // }
-
     // ---------------- ROW BOUNDS ----------------
     lp.row_lower_.assign(n_rows, 1.0);
     lp.row_upper_.assign(n_rows, kHighsInf);
 
     lp.row_lower_[n_items] = -kHighsInf;
-    lp.row_upper_[n_items] = K;
+    lp.row_upper_[n_items] = K_upper;
 
     // ---------------- MATRIX ----------------
     lp.a_matrix_.start_.assign(n_cols + 1, 0);
@@ -938,7 +951,8 @@ bool LocalSearch::setCovering() {
     highs.passModel(lp);
     highs.setOptionValue("output_flag", false);
     highs.setOptionValue("log_to_console", false);
-    highs.setOptionValue("time_limit", TIME_LIMIT_MS / 1000.0);
+    // highs.setOptionValue("time_limit", TIME_LIMIT_MS / 1000.0);
+    // highs.setOptionValue("presolve", "off");
 
     log("[SC] calling HiGHS...");
 
@@ -990,25 +1004,46 @@ bool LocalSearch::setCovering() {
         return false;
     }
 
-    size_t new_hash = hash_solution(new_bins);
+    std::vector<std::vector<int>> repaired_bins = repairSolution(new_bins);
+
+    size_t new_hash = hash_solution(repaired_bins);
     size_t old_hash = hash_solution(sol->bins);
 
     // ---------------- TABU CHECK ----------------
-    if (isTabu(new_hash)) {
-        log("[SC] TABU solution detected. Rejecting.");
-        updatePoolSize(false);
-        return false;
-    }
-
     if (new_hash == old_hash) {
         log("[SC] identical solution. Rejecting.");
         updatePoolSize(false);
         return false;
     }
 
+    if (isTabu(new_hash)) {
+        log("[SC] TABU solution detected. Rejecting.");
+        updatePoolSize(false);
+        return false;
+    }
+
     // ---------------- ACCEPT ----------------
-    sol->rebuildSolutionFromBins(new_bins);
-    sol->removeEmptyBins();
+    int old_obj = sol->computeObjective(K1, K2, K3);
+
+    BPPCSolution temp_sol = *sol;
+    temp_sol.rebuildSolutionFromBins(repaired_bins);
+    temp_sol.removeEmptyBins();
+
+    int new_obj = temp_sol.computeObjective(K1, K2, K3);
+
+    log("[SC] old_obj= " + std::to_string(old_obj));
+    log("[SC] new_obj= " + std::to_string(new_obj));
+
+    // Only accept improving solutions
+    if (new_obj > old_obj) {
+        log("[SC] didn't improve objective value solution. Rejecting.");
+        updatePoolSize(false);
+        return false;
+    }
+    log("[SC] improved objective value solution. Accepting.");
+
+    // ---------------- APPLY ACCEPTED SOLUTION ----------------
+    *sol = temp_sol;
 
     updatePoolSize(true);
     addTabu(new_hash);
@@ -1020,49 +1055,31 @@ bool LocalSearch::setCovering() {
     return true;
 }
 
+void LocalSearch::updateK() {
+    if (K > sol->bins_used && sol->isFeasible()) K = sol->bins_used;
+}
+
+void LocalSearch::updateElite(const BPPCSolution& candidate) {
+
+    if (candidate.computeObjective(K1, K2, K3) >= best_obj) {
+        return;
+    }
+
+    sol->bins = candidate.bins;
+
+    elite_bins = candidate.bins;
+
+    elite_hashes.clear();
+    for (const auto& bin : elite_bins) {
+        elite_hashes.insert(hash_bin(bin));
+    }
+
+    elite_solution_hash = hash_solution(elite_bins);
+}
+
 void LocalSearch::updatePool() {
 
     const int n_items = sol->N;
-
-    auto hash_bin = [&](const std::vector<int>& bin) -> size_t {
-        size_t h = 1469598103934665603ULL;
-        for (int x : bin) {
-            h ^= (size_t)x + 0x9e3779b97f4a7c15ULL;
-            h *= 1099511628211ULL;
-        }
-        h ^= 0x9e3779b97f4a7c15ULL;
-        h *= 1099511628211ULL;
-        return h;
-    };
-
-    auto add_column = [&](Column&& col) {
-
-        if ((int)col.mask.size() != n_items) {
-            col.buildMask(n_items);
-        }
-
-        size_t h = hash_bin(col.items);
-
-        if (seen.find(h) != seen.end())
-            return;
-
-        seen.insert(h);
-
-        PoolEntry entry;
-        entry.col = std::move(col);
-        entry.hash = h;
-
-        pool.push_back(std::move(entry));
-
-        while ((int)pool.size() > S_pool) {
-
-            PoolEntry& old = pool.front();
-
-            seen.erase(old.hash);
-
-            pool.pop_front();
-        }
-    };
 
     for (int b = 0; b < (int)sol->bins.size(); b++) {
 
@@ -1078,9 +1095,101 @@ void LocalSearch::updatePool() {
 
         int excess = std::max(0, load - sol->C);
 
-        col.cost = K2 * excess + K3 * conflicts;
+        col.cost = K1 + K2 * excess + K3 * conflicts;
 
-        add_column(std::move(col));
+        addColumn(std::move(col), n_items);
+    }
+
+    trimPool();
+}
+
+void LocalSearch::addToPool(const BPPCSolution& s) {
+
+    const int n_items = s.N;
+
+    // ---- Extract columns from solution s ----
+    for (int b = 0; b < (int)s.bins.size(); b++) {
+
+        const auto& bin = s.bins[b];
+        if (bin.empty()) continue;
+
+        Column col;
+        col.items = bin;
+        col.buildMask(n_items);
+
+        int load = s.bin_loads[b];
+        int conflicts = s.bin_conflicts[b];
+
+        int excess = std::max(0, load - s.C);
+
+        col.cost = K1 + K2 * excess + K3 * conflicts;
+
+        addColumn(std::move(col), n_items);
+    }
+
+    trimPool();
+}
+
+double LocalSearch::jaccard(const std::vector<int>& a,
+                             const std::vector<int>& b) const
+{
+    int inter = 0;
+
+    for (int i : a) {
+        for (int j : b) {
+            if (i == j) {
+                inter++;
+                break;
+            }
+        }
+    }
+
+    int uni = a.size() + b.size() - inter;
+
+    return (uni == 0) ? 0.0 : (double)inter / uni;
+}
+
+void LocalSearch::trimPool() {
+
+    if (pool.size() <= S_pool) return;
+
+    while ((int)pool.size() > S_pool) {
+
+        auto worst_it = pool.end();
+        double worst_score = std::numeric_limits<double>::infinity();
+
+        for (auto it = pool.begin(); it != pool.end(); ++it) {
+
+            const auto& col = it->col;
+            size_t h = it->hash;
+
+            // 1. Never remove elite bins
+            if (elite_hashes.count(h)) {
+                continue;
+            }
+
+            // 2. Compute best Jaccard vs any elite bin
+            double best_j = 0.0;
+
+            for (const auto& ebin : elite_bins) {
+                double j = jaccard(col.items, ebin);
+                if (j > best_j) best_j = j;
+            }
+
+            // 3. Small aging tie-break (optional)
+            double score = best_j - std::distance(pool.begin(), it) * 1e-9;
+
+            // 4. Remove worst columns
+            if (score < worst_score) {
+                worst_score = score;
+                worst_it = it;
+            }
+        }
+
+        if (worst_it == pool.end()) break;
+
+        seen.erase(worst_it->hash);
+        pool.erase(worst_it);
     }
 }
 
@@ -1089,19 +1198,60 @@ int LocalSearch::computeObjective(const BPPCSolution& s) const {
     return s.computeObjective(K1, K2, K3);
 }
 
-size_t LocalSearch::hash_solution(const std::vector<std::vector<int>>& bins) const {
-    size_t h = 1469598103934665603ULL; // FNV-1a
+inline size_t LocalSearch::hash_bin(const std::vector<int>& bin) const {
+    static constexpr uint64_t FNV = 1469598103934665603ULL;
+    static constexpr uint64_t PRIME = 1099511628211ULL;
 
-    for (const auto& bin : bins) {
-        for (int x : bin) {
-            h ^= (size_t)x + 0x9e3779b97f4a7c15ULL;
-            h *= 1099511628211ULL;
-        }
+    std::vector<int> tmp = bin;
+    std::sort(tmp.begin(), tmp.end());
 
-        // separator to avoid permutation collisions
-        h ^= 0x9e3779b97f4a7c15ULL;
-        h *= 1099511628211ULL;
+    size_t h = FNV;
+
+    for (int x : tmp)
+    {
+        h ^= (uint64_t)x + 0x9e3779b97f4a7c15ULL;
+        h *= PRIME;
     }
+
+    // final avalanche step
+    h ^= (h >> 33);
+    h *= 0xff51afd7ed558ccdULL;
+    h ^= (h >> 33);
+    h *= 0xc4ceb9fe1a85ec53ULL;
+    h ^= (h >> 33);
+
+    return h;
+}
+
+inline size_t LocalSearch::hash_solution(const std::vector<std::vector<int>>& bins) const {
+    static constexpr uint64_t FNV = 1469598103934665603ULL;
+    static constexpr uint64_t PRIME = 1099511628211ULL;
+
+    std::vector<size_t> bin_hashes;
+    bin_hashes.reserve(bins.size());
+
+    for (const auto& bin : bins)
+    {
+        bin_hashes.push_back(hash_bin(bin));
+    }
+
+    // canonical order
+    std::sort(bin_hashes.begin(), bin_hashes.end());
+
+    size_t h = FNV;
+
+    for (size_t hb : bin_hashes)
+    {
+        h ^= hb;
+        h *= PRIME;
+    }
+
+    // final avalanche
+    h ^= (h >> 33);
+    h *= 0xff51afd7ed558ccdULL;
+    h ^= (h >> 33);
+    h *= 0xc4ceb9fe1a85ec53ULL;
+    h ^= (h >> 33);
 
     return h;
 }
@@ -1120,6 +1270,25 @@ size_t LocalSearch::hash_pool() const {
     }
 
     return h;
+}
+
+inline void LocalSearch::addColumn(Column&& col, int n_items)
+{
+    if ((int)col.mask.size() != n_items) {
+        col.buildMask(n_items);
+    }
+
+    size_t h = hash_bin(col.items);
+
+    if (seen.find(h) != seen.end())
+        return;
+
+    seen.insert(h);
+
+    pool.emplace_back(PoolEntry{
+        .col = std::move(col),
+        .hash = h
+    });
 }
 
 bool LocalSearch::isTabu(size_t h) {
@@ -1147,4 +1316,160 @@ void LocalSearch::updatePoolSize(bool optimal_solved) {
 
     S_pool = std::max(S_pool, S_min);
     S_pool = std::min(S_pool, S_max);
+}
+
+std::vector<std::vector<int>> LocalSearch::repairSolution(
+    const std::vector<std::vector<int>>& input_bins)
+{
+    const int n_items = sol->N;
+
+    // ---- Copy bins ----
+    std::vector<std::vector<int>> bins = input_bins;
+
+    // ---- Track occurrences ----
+    std::vector<std::vector<int>> item_bins(n_items);
+
+    for (int b = 0; b < (int)bins.size(); b++) {
+        for (int item : bins[b]) {
+            item_bins[item].push_back(b);
+        }
+    }
+
+    // ---- Resolve duplicates ----
+    for (int item = 0; item < n_items; item++) {
+
+        auto& containing_bins = item_bins[item];
+
+        if ((int)containing_bins.size() <= 1)
+            continue;
+
+        // ---- Randomly choose one bin to keep ----
+        int keep_idx = containing_bins[rng() % containing_bins.size()];
+
+        // ---- Remove from all other bins ----
+        for (int b : containing_bins) {
+            if (b == keep_idx) continue;
+
+            auto& bin = bins[b];
+
+            // remove item from bin
+            bin.erase(std::remove(bin.begin(), bin.end(), item), bin.end());
+        }
+    }
+
+    // ---- Remove empty bins ----
+    std::vector<std::vector<int>> result;
+    result.reserve(bins.size());
+
+    for (auto& b : bins) {
+        if (!b.empty()) {
+            result.push_back(std::move(b));
+        }
+    }
+
+    return result;
+}
+
+BPPCSolution LocalSearch::destroyRepair() {
+
+    // ---- Copy current solution ----
+    BPPCSolution s = *sol;
+
+    const int C = s.C;
+
+    // ---- Parameters ----
+    double destroy_ratio = 0.25;
+    int trials_per_item = 5;
+
+    // ---- Select bins to destroy ----
+    int n_destroy = std::max(1, (int)(destroy_ratio * s.bins.size()));
+
+    std::vector<int> idx(s.bins.size());
+    std::iota(idx.begin(), idx.end(), 0);
+    std::shuffle(idx.begin(), idx.end(), rng);
+
+    std::vector<int> removed_items;
+
+    // ---- Destroy phase (collect items) ----
+    for (int i = 0; i < n_destroy; i++) {
+        int b = idx[i];
+
+        for (int it : s.bins[b]) {
+            removed_items.push_back(it);
+        }
+    }
+
+    // ---- Actually remove items using moveItem ----
+    for (int item : removed_items) {
+
+        int from_bin = -1;
+
+        // find current bin of item
+        for (int b = 0; b < (int)s.bins.size(); b++) {
+            for (int x : s.bins[b]) {
+                if (x == item) {
+                    from_bin = b;
+                    break;
+                }
+            }
+            if (from_bin != -1) break;
+        }
+
+        // move to a temporary "new bin" (acts like removal)
+        s.moveItem(item, from_bin, s.bins.size());
+    }
+
+    // ---- Shuffle items ----
+    std::shuffle(removed_items.begin(), removed_items.end(), rng);
+
+    // ---- Repair phase ----
+    for (int item : removed_items) {
+
+        int best_bin = -1;
+        int best_penalty = INT_MAX;
+
+        // find current bin (it is in a singleton bin now)
+        int from_bin = -1;
+        for (int b = 0; b < (int)s.bins.size(); b++) {
+            if (s.bins[b].size() == 1 && s.bins[b][0] == item) {
+                from_bin = b;
+                break;
+            }
+        }
+
+        // Try random bins
+        for (int t = 0; t < trials_per_item; t++) {
+
+            int b = rng() % s.bins.size();
+            if (b == from_bin) continue;
+
+            // ---- evaluate insertion ----
+            int delta_conflicts = 0;
+            for (int u : s.bins[b]) {
+                if (s.hasConflict(u, item))
+                    delta_conflicts++;
+            }
+
+            int new_load = s.bin_loads[b] + s.weights[item];
+            int excess = std::max(0, new_load - C);
+
+            int pen = excess + delta_conflicts;
+
+            if (pen < best_penalty) {
+                best_penalty = pen;
+                best_bin = b;
+            }
+        }
+
+        // ---- Apply best move ----
+        if (best_bin != -1) {
+            s.moveItem(item, from_bin, best_bin);
+        }
+        // else: keep singleton bin (already created)
+    }
+
+    // ---- Remove empty bins if your structure leaves any ----
+    s.removeEmptyBins();
+
+    return s;
 }

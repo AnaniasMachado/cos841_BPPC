@@ -9,8 +9,8 @@ class QRVND {
 private:
     BPPCSolution* sol;
     LocalSearch ls;
-
     int K1,K2,K3;
+    int iter;
 
     double alpha, gamma, epsilon;
 

@@ -12,6 +12,7 @@ private:
     LocalSearch ls;
     int K1, K2, K3;
     std::mt19937 rng;
+    int iter;
 
 public:
     RVND(BPPCSolution& solution, ImprovementType improvement, int k1, int k2, int k3);

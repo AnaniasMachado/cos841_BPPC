@@ -128,8 +128,8 @@ void BPPCSolution::rebuildSolutionFromBins(
     const int m = static_cast<int>(bins.size());
 
     bins_used = 0;
-    conflicts_count = 0;
     excess_weight = 0;
+    conflicts_count = 0;
 
     bin_loads.assign(m, 0);
     bin_conflicts.assign(m, 0);
@@ -143,7 +143,7 @@ void BPPCSolution::rebuildSolutionFromBins(
         bins_used++;
 
         int new_bin_load = 0;
-        int new_bin_conflict = 0;
+        int new_bin_conflicts = 0;
 
         // -------------------- compute load --------------------
         for (int item : bin) {
@@ -164,20 +164,20 @@ void BPPCSolution::rebuildSolutionFromBins(
 
                 // INLINE version of hasConflict(a, b_item)
                 if (rowA[b_item >> 6] & (1ULL << (b_item & 63))) {
-                    new_bin_conflict++;
+                    new_bin_conflicts++;
                 }
             }
         }
 
         bin_loads[b] = new_bin_load;
-        bin_conflicts[b] = new_bin_conflict;
+        bin_conflicts[b] = new_bin_conflicts;
 
-        conflicts_count += new_bin_conflict;
+        conflicts_count += new_bin_conflicts;
 
         int excess = std::max(0, new_bin_load - C);
         excess_weight += excess;
 
-        if (excess > 0 || new_bin_conflict > 0) {
+        if (excess > 0 || new_bin_conflicts > 0) {
             bad_bins.insert(b);
         }
     }

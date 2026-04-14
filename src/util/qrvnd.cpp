@@ -13,6 +13,7 @@ QRVND::QRVND(BPPCSolution& solution, ImprovementType improvement_type_,
 {
     std::random_device rd;
     rng = std::mt19937(rd());
+    iter = -1;
 
     initialized = false;
     current_p = 0;
@@ -68,11 +69,14 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
             case 0: improved = ls.relocation();      break;
             case 1: improved = ls.exchange();        break;
             case 2: improved = ls.ejectionGlobal();  break;
-            case 3: improved = ls.setCovering();     break;
+            case 3: improved = ls.assignment();      break;
         }
 
         if (improved) {
             improved_global = true;
+            // ls.updatePool();
+            // BPPCSolution perturbed = ls.destroyRepair();
+            // ls.addToPool(perturbed);
 
             // Restart RVND
             k = 0;
@@ -81,9 +85,24 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         }
     }
 
+    if (iter % 5 == 0 && iter != 0) {
+        bool sc_improve = true;
+        while (sc_improve) {
+            sc_improve = ls.setCovering();
+            if (sc_improve) {
+                ls.updateK();
+                ls.updateElite(*sol);
+            }
+        }
+    }
+
     if (improved_global) {
+        ls.updateK();
+        ls.updateElite(*sol);
         ls.updatePool();
     }
+
+    iter++;
 
     return improved_global;
 }

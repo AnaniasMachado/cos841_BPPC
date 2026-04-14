@@ -208,7 +208,7 @@ BPPCSolution AILS::run() {
             break;
         }
 
-        if (verbose && iter % 5 == 0) {
+        if (verbose && iter % 1 == 0) {
             int current_obj = current.computeObjective(K1, K2, K3);
             int best_obj = best.computeObjective(K1, K2, K3);
 

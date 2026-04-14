@@ -9,6 +9,7 @@ RVND::RVND(BPPCSolution& solution, ImprovementType improvement_type_,
 {
     std::random_device rd;
     rng = std::mt19937(rd());
+    iter = -1;
 }
 
 // -------------------- RVND --------------------
@@ -30,7 +31,7 @@ void RVND::run() {
             case 0: local_improved = ls.relocation();      break;
             case 1: local_improved = ls.exchange();        break;
             case 2: local_improved = ls.ejectionGlobal();  break;
-            case 3: local_improved = ls.setCovering();     break;
+            case 3: local_improved = ls.assignment();      break;
         }
 
         if (local_improved) {
@@ -38,15 +39,26 @@ void RVND::run() {
 
             // Restart RVND
             k = 0;
-
         } else {
             k++;
         }
     }
 
+    if (iter % 5 == 0 && iter == 0) {
+        bool sc_improve = true;
+        while (sc_improve) {
+            sc_improve = ls.setCovering();
+            if (sc_improve) ls.updateK();
+        }
+    }
+
     if (improved_global) {
+        ls.updateK();
+        ls.updateElite(*sol);
         ls.updatePool();
     }
+
+    iter++;
 }
 
 void RVND::setSolution(BPPCSolution& solution) {
