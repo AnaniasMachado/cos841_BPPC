@@ -79,6 +79,8 @@ public:
 
     bool relocation();
     bool exchange();
+    bool exchange21();
+    bool classic();
     bool add();
     bool ejection();
     bool ejectionGreedy();

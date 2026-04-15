@@ -401,6 +401,75 @@ int BPPCSolution::deltaSwap(int bin1, int idx1, int bin2, int idx2,
     return k1 * 0 + k2 * d_excess + k3 * d_conflicts;
 }
 
+int BPPCSolution::deltaSwap21(int bin1, int idx1a, int idx1b,
+                              int bin2, int idx2,
+                              int k1, int k2, int k3) const {
+    if (bin1 == bin2) return 0;
+
+    const int a = bins[bin1][idx1a];
+    const int b = bins[bin1][idx1b];
+    const int c = bins[bin2][idx2];
+
+    // -------------------- Loads --------------------
+    const int load1_before = bin_loads[bin1];
+    const int load2_before = bin_loads[bin2];
+
+    const int load1_after =
+        load1_before - weights[a] - weights[b] + weights[c];
+
+    const int load2_after =
+        load2_before - weights[c] + weights[a] + weights[b];
+
+    int d_excess =
+        excessDelta(load1_before, load1_after, C) +
+        excessDelta(load2_before, load2_after, C);
+
+    // -------------------- Conflicts --------------------
+    int d_conflicts = 0;
+
+    const auto& row_a = conflicts[a];
+    const auto& row_b = conflicts[b];
+    const auto& row_c = conflicts[c];
+
+    const auto& B1 = bins[bin1];
+    const auto& B2 = bins[bin2];
+
+    // ---- BIN 1 ----
+    for (int other : B1) {
+        if (other == a || other == b) continue;
+
+        const bool ca = (row_a[other >> 6] >> (other & 63)) & 1ULL;
+        const bool cb = (row_b[other >> 6] >> (other & 63)) & 1ULL;
+        const bool cc = (row_c[other >> 6] >> (other & 63)) & 1ULL;
+
+        // remove a and b conflicts
+        d_conflicts -= ca;
+        d_conflicts -= cb;
+
+        // add c conflicts
+        d_conflicts += cc;
+    }
+
+    // ---- BIN 2 ----
+    for (int other : B2) {
+        if (other == c) continue;
+
+        const bool ca = (row_a[other >> 6] >> (other & 63)) & 1ULL;
+        const bool cb = (row_b[other >> 6] >> (other & 63)) & 1ULL;
+        const bool cc = (row_c[other >> 6] >> (other & 63)) & 1ULL;
+
+        // remove c conflicts
+        d_conflicts -= cc;
+
+        // add a and b conflicts
+        d_conflicts += ca;
+        d_conflicts += cb;
+    }
+
+    // -------------------- Final --------------------
+    return k1 * 0 + k2 * d_excess + k3 * d_conflicts;
+}
+
 int BPPCSolution::deltaAddMultiple(
     const std::vector<int>& items,
     int bin_index,

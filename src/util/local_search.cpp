@@ -19,9 +19,9 @@ LocalSearch::LocalSearch(BPPCSolution& solution,
     // S_min = std::max(75, (int)(5.0 * K));
     // S_max = std::max(150, (int)(9.0 * K));
 
-    std::cout << "S_pool: " << S_pool << "\n";
-    std::cout << "S_min: " << S_min << "\n";
-    std::cout << "S_max: " << S_max << "\n";
+    // std::cout << "S_pool: " << S_pool << "\n";
+    // std::cout << "S_min: " << S_min << "\n";
+    // std::cout << "S_max: " << S_max << "\n";
 
     pool.clear();
 }
@@ -125,6 +125,112 @@ bool LocalSearch::exchange() {
     }
 
     return false;
+}
+
+// -------------------- Exchange 21 (delta version) --------------------
+bool LocalSearch::exchange21() {
+
+    if (sol->isFeasible()) {
+        return false;
+    }
+
+    int best_delta = 0;
+
+    int b1_best = -1, b2_best = -1;
+    int a_best = -1, b_best = -1, c_best = -1;
+
+    // Iterate over bad bins for b1
+    for (int b1 : sol->bad_bins) {
+
+        const auto& bin1 = sol->bins[b1];
+        int sz1 = bin1.size();
+
+        if (sz1 < 2) continue;
+
+        // Pick two distinct items from b1
+        for (int i1 = 0; i1 < sz1; i1++) {
+            for (int i2 = i1 + 1; i2 < sz1; i2++) {
+
+                for (int b2 = 0; b2 < (int)sol->bins.size(); b2++) {
+
+                    if (b2 == b1) continue;
+
+                    const auto& bin2 = sol->bins[b2];
+                    if (bin2.empty()) continue;
+
+                    for (int j = 0; j < (int)bin2.size(); j++) {
+
+                        int delta = sol->deltaSwap21(
+                            b1, i1, i2,
+                            b2, j,
+                            K1, K2, K3
+                        );
+
+                        // First improvement
+                        if (improvement_type == ImprovementType::FI && delta < 0) {
+
+                            int a = sol->bins[b1][i1];
+                            int b = sol->bins[b1][i2];
+                            int c = sol->bins[b2][j];
+
+                            // apply move safely using item IDs
+                            sol->moveItem(a, b1, b2);
+                            sol->moveItem(b, b1, b2);
+                            sol->moveItem(c, b2, b1);
+
+                            sol->removeEmptyBins();
+                            return true;
+                        }
+
+                        // Best improvement
+                        if (delta < best_delta) {
+
+                            best_delta = delta;
+
+                            b1_best = b1;
+                            b2_best = b2;
+
+                            a_best = sol->bins[b1][i1];
+                            b_best = sol->bins[b1][i2];
+                            c_best = sol->bins[b2][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Apply best move
+    if (improvement_type == ImprovementType::BI && b1_best != -1) {
+
+        sol->moveItem(a_best, b1_best, b2_best);
+        sol->moveItem(b_best, b1_best, b2_best);
+        sol->moveItem(c_best, b2_best, b1_best);
+
+        sol->removeEmptyBins();
+        return true;
+    }
+
+    return false;
+}
+
+// -------------------- One iteration of classic local search only --------------------
+bool LocalSearch::classic() {
+
+    std::vector<int> order = {0, 1, 2};
+    std::shuffle(order.begin(), order.end(), rng);
+
+    bool improved = false;
+
+    for (int op : order) {
+        switch (op) {
+            case 0: improved |= relocation(); break;
+            case 1: improved |= exchange(); break;
+            case 2: improved |= exchange21(); break;
+        }
+    }
+
+    return improved;
 }
 
 // -------------------- Add (delta version) --------------------
@@ -858,7 +964,7 @@ bool LocalSearch::assignment(int N_ASSIGN) {
 
 // -------------------- Set Covering --------------------
 bool LocalSearch::setCovering() {
-    bool verbose = true;
+    bool verbose = false;
 
     auto log = [&](const std::string& msg) {
         if (verbose) std::cout << msg << "\n";
@@ -967,7 +1073,6 @@ bool LocalSearch::setCovering() {
     highs.setOptionValue("output_flag", false);
     highs.setOptionValue("log_to_console", false);
     highs.setOptionValue("time_limit", TIME_LIMIT_MS / 1000.0);
-    // highs.setOptionValue("presolve", "off");
 
     log("[SC] calling HiGHS...");
 
@@ -1073,7 +1178,7 @@ bool LocalSearch::setCovering() {
     log("[SC] new_obj= " + std::to_string(new_obj));
 
     // Only accept improving solutions
-    if (new_obj > old_obj) {
+    if (new_obj >= old_obj) {
         log("[SC] didn't improve objective value solution. Rejecting.");
         updatePoolSize(false);
         return false;

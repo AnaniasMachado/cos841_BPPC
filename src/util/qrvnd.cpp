@@ -18,18 +18,18 @@ QRVND::QRVND(BPPCSolution& solution, ImprovementType improvement_type_,
     initialized = false;
     current_p = 0;
 
-    // perms = {
-    //     {0,1,2},{0,2,1},
-    //     {1,0,2},{1,2,0},
-    //     {2,0,1},{2,1,0}
-    // };
-
     perms = {
-        {0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,2,3,1}, {0,3,1,2}, {0,3,2,1},
-        {1,0,2,3}, {1,0,3,2}, {1,2,0,3}, {1,2,3,0}, {1,3,0,2}, {1,3,2,0},
-        {2,0,1,3}, {2,0,3,1}, {2,1,0,3}, {2,1,3,0}, {2,3,0,1}, {2,3,1,0},
-        {3,0,1,2}, {3,0,2,1}, {3,1,0,2}, {3,1,2,0}, {3,2,0,1}, {3,2,1,0}
+        {0,1,2},{0,2,1},
+        {1,0,2},{1,2,0},
+        {2,0,1},{2,1,0}
     };
+
+    // perms = {
+    //     {0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,2,3,1}, {0,3,1,2}, {0,3,2,1},
+    //     {1,0,2,3}, {1,0,3,2}, {1,2,0,3}, {1,2,3,0}, {1,3,0,2}, {1,3,2,0},
+    //     {2,0,1,3}, {2,0,3,1}, {2,1,0,3}, {2,1,3,0}, {2,3,0,1}, {2,3,1,0},
+    //     {3,0,1,2}, {3,0,2,1}, {3,1,0,2}, {3,1,2,0}, {3,2,0,1}, {3,2,1,0}
+    // };
 
     Q = std::vector<std::vector<double>>(
         perms.size(),
@@ -66,17 +66,13 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         bool improved = false;
 
         switch (c[k]) {
-            case 0: improved = ls.relocation();      break;
-            case 1: improved = ls.exchange();        break;
-            case 2: improved = ls.ejectionGlobal();  break;
-            case 3: improved = ls.assignment((int)sol->N / 5);      break;
+            case 0: improved = ls.classic();                    break;
+            case 2: improved = ls.ejectionGlobal();             break;
+            case 3: improved = ls.assignment((int)sol->N / 5);  break;
         }
 
         if (improved) {
             improved_global = true;
-            // ls.updatePool();
-            // BPPCSolution perturbed = ls.destroyRepair();
-            // ls.addToPool(perturbed);
 
             // Restart RVND
             k = 0;
