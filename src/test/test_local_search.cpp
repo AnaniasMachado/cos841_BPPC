@@ -11,14 +11,15 @@ int main() {
 
     // -------------------- Instance path --------------------
     // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
-    std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_3_8_9.txt";
+    // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_4_8_9.txt";
+    std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
 
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
 
-    int k1 = 1;
-    int k2 = 2;
-    int k3 = 5;
+    int k1 = 226;
+    int k2 = 423;
+    int k3 = 250;
     ImprovementType improvement = ImprovementType::BI;
 
     // -------------------- Build initial solution --------------------
@@ -49,6 +50,7 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
@@ -75,11 +77,66 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
 
         std::cout << "===== EXCHANGE =====\n";
+        std::cout << "Improved: " << improved << "\n";
+        std::cout << "Before: " << before << "\n";
+        std::cout << "After: " << after << "\n";
+        std::cout << "Time: " << time << " s\n\n";
+    }
+
+    // ======================================================
+    // -------------------- EXCHANGE 21 -------------------------
+    // ======================================================
+    {
+        BPPCSolution temp = sol;
+        ls.setSolution(temp);
+
+        int before = temp.computeObjective(k1, k2, k3);
+
+        auto start = clock::now();
+        bool improved = ls.exchange21();
+        auto end = clock::now();
+
+        ls.updateK();
+        ls.updateElite(temp);
+        ls.addToPool(temp);
+
+        int after = temp.computeObjective(k1, k2, k3);
+        double time = std::chrono::duration<double>(end - start).count();
+
+        std::cout << "===== EXCHANGE 21 =====\n";
+        std::cout << "Improved: " << improved << "\n";
+        std::cout << "Before: " << before << "\n";
+        std::cout << "After: " << after << "\n";
+        std::cout << "Time: " << time << " s\n\n";
+    }
+
+    // ======================================================
+    // -------------------- CLASSIC -------------------------
+    // ======================================================
+    {
+        BPPCSolution temp = sol;
+        ls.setSolution(temp);
+
+        int before = temp.computeObjective(k1, k2, k3);
+
+        auto start = clock::now();
+        bool improved = ls.classic();
+        auto end = clock::now();
+
+        ls.updateK();
+        ls.updateElite(temp);
+        ls.addToPool(temp);
+
+        int after = temp.computeObjective(k1, k2, k3);
+        double time = std::chrono::duration<double>(end - start).count();
+
+        std::cout << "===== CLASSIC =====\n";
         std::cout << "Improved: " << improved << "\n";
         std::cout << "Before: " << before << "\n";
         std::cout << "After: " << after << "\n";
@@ -101,6 +158,7 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
@@ -127,6 +185,7 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
@@ -153,6 +212,7 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
@@ -179,6 +239,7 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
@@ -205,6 +266,7 @@ int main() {
 
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
@@ -226,11 +288,12 @@ int main() {
         int before = temp.computeObjective(k1, k2, k3);
 
         auto start = clock::now();
-        bool improved = ls.assignment((int)inst.N / 20);
+        bool improved = ls.assignment((int)inst.N / 5);
         auto end = clock::now();
         
         ls.updateK();
         ls.updateElite(temp);
+        ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();

@@ -5,7 +5,7 @@ K3         "--K3 "        i     (1, 500)
 
 # -------------------- AILS parameters --------------------
 max_it       "--max_it "       i    (50, 500)
-max_no_imp   "--max_no_imp "   i    (5, 25)
+max_no_imp   "--max_no_imp "   i    (20, 25)
 acceptance   "--acceptance "   c    (BEST, ITERATIVE, RW)
 improvement  "--improvement "  c    (BI, FI)
 use_ucb      "--use_ucb "      i    (0, 1)
@@ -20,7 +20,7 @@ use_qrvnd    "--use_qrvnd "    i    (0, 1)
 c            "--c "            r    (0.1, 1.0)     | use_ucb == 1
 
 # Only used when builder = GREEDY
-beta         "--beta "         r    (0.1, 0.9)     | builder == "GREEDY"
+beta         "--beta "         r    (0.01, 0.99)   | builder == "GREEDY"
 
 # Only used when QRVND is enabled
 alpha        "--alpha "        r    (0.01, 0.99)   | use_qrvnd == 1

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include "highs/Highs.h"
 #include "highs/lp_data/HighsLp.h"
+#include "gurobi_c++.h"
 
 enum class ImprovementType {
     FI,
@@ -89,6 +90,8 @@ public:
     int hungarian(const std::vector<std::vector<int>>& cost,
                     std::vector<int>& assignment);
     bool assignment(int N_ASSIGN);
+    bool repackingGreedy(int N_ATTEMPTS);
+    bool dualPhaseMove(int N_ASSIGN, int N_ATTEMPTS);
     bool setCovering();
 
     void updateK();

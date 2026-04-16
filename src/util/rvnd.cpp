@@ -22,18 +22,19 @@ void RVND::run() {
     int k = 0;
     bool improved_global = false;
 
+
     // RVND loop
     while (k < (int)p.size()) {
 
-        bool local_improved = false;
+        bool improved = false;
 
         switch (p[k]) {
-            case 0: local_improved = ls.classic();                      break;
-            case 2: local_improved = ls.ejectionGlobal();               break;
-            case 3: local_improved = ls.assignment((int)sol->N / 5);    break;
+            case 0: improved = ls.classic();                              break;
+            case 1: improved = ls.ejectionGlobal();                       break;
+            case 2: improved = ls.dualPhaseMove((int)sol->N / 5, 10);     break;
         }
 
-        if (local_improved) {
+        if (improved) {
             improved_global = true;
 
             // Restart RVND
@@ -44,14 +45,6 @@ void RVND::run() {
     }
 
     if (iter % 5 == 0 && iter >= 15) {
-        // bool sc_improve = true;
-        // while (sc_improve) {
-        //     sc_improve = ls.setCovering();
-        //     if (sc_improve) {
-        //         ls.updateK();
-        //         ls.updateElite(*sol);
-        //     }
-        // }
         bool sc_improve = ls.setCovering();
         if (sc_improve) improved_global = true;
     }

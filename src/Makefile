@@ -6,6 +6,15 @@ CXXFLAGS = -std=c++17 -O2 -Wall
 HIGHS_INC = -I/usr/include/highs
 HIGHS_LIB = -lhighs
 
+# -------------------- Gurobi --------------------
+# Adjust if your installation path differs
+GUROBI_HOME = /home/pc-515/gurobi1301/linux64
+GUROBI_INC = -I$(GUROBI_HOME)/include
+GUROBI_LIB = -L$(GUROBI_HOME)/lib -lgurobi_c++ -lgurobi130
+
+# Runtime library path (important when running executables)
+export LD_LIBRARY_PATH := $(GUROBI_HOME)/lib:$(LD_LIBRARY_PATH)
+
 # -------------------- Directories --------------------
 UTIL_DIR = util
 MT_DIR = metaheuristic
@@ -49,23 +58,23 @@ all: $(TEST_BINS) $(AUX_BIN)
 
 # -------------------- Compile utility objects --------------------
 $(BIN_DIR)/%.o: $(UTIL_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) -c $< -o $@
 
 # -------------------- Compile metaheuristic objects --------------------
 $(BIN_DIR)/%.o: $(MT_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) -c $< -o $@
 
 # -------------------- Compile test objects --------------------
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) -c $< -o $@
 
 # -------------------- Link test executables --------------------
 $(BIN_DIR)/%: $(BIN_DIR)/%.o $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(HIGHS_LIB)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(HIGHS_LIB) $(GUROBI_LIB)
 
 # -------------------- Link AILS runner --------------------
 $(AUX_BIN): $(UTIL_DIR)/ails_runner.cpp $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $^ -o $@ $(HIGHS_LIB)
+	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) $^ -o $@ $(HIGHS_LIB) $(GUROBI_LIB)
 
 # -------------------- Ensure bin exists --------------------
 $(BIN_DIR):

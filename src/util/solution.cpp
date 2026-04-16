@@ -11,6 +11,7 @@ BPPCSolution::BPPCSolution(
     bins.clear();
     bin_loads.clear();
     bin_conflicts.clear();
+    item_bin.assign(N, -1);
 }
 
 int BPPCSolution::itemConflicts(int item, int bin_index) const {
@@ -53,6 +54,8 @@ void BPPCSolution::addItemToBin(int item, int bin_index) {
     int new_excess = std::max(0, bin_loads[bin_index] - C);
     excess_weight += (new_excess - old_excess);
 
+    item_bin[item] = bin_index;
+
     bool is_bad = (new_excess > 0 || bin_conflicts[bin_index] > 0);
     if (is_bad) {
         bad_bins.insert(bin_index);
@@ -86,6 +89,8 @@ void BPPCSolution::removeItemFromBin(int item, int bin_index) {
 
     int new_excess = std::max(0, bin_loads[bin_index] - C);
     excess_weight += (new_excess - old_excess);
+
+    item_bin[item] = -1;
 
     bool is_bad = (new_excess > 0 || bin_conflicts[bin_index] > 0);
     if (is_bad) {
@@ -148,6 +153,7 @@ void BPPCSolution::rebuildSolutionFromBins(
         // -------------------- compute load --------------------
         for (int item : bin) {
             new_bin_load += weights[item];
+            item_bin[item] = b;
         }
 
         // -------------------- compute conflicts --------------------
@@ -229,22 +235,41 @@ void BPPCSolution::removeEmptyBins() {
     std::vector<int> new_bin_conflicts;
     std::unordered_set<int> new_bad_bins;
 
+    // old index -> new index
+    std::vector<int> bin_map(bins.size(), -1);
+
+    // -------------------- Build new bins --------------------
     for (size_t i = 0; i < bins.size(); i++) {
         if (!bins[i].empty()) {
+
+            int new_idx = new_bins.size();
+
             new_bins.push_back(bins[i]);
             new_loads.push_back(bin_loads[i]);
             new_bin_conflicts.push_back(bin_conflicts[i]);
-            
+
+            bin_map[i] = new_idx;
+
             if (bad_bins.count(i)) {
-                new_bad_bins.insert(new_bins.size() - 1);
+                new_bad_bins.insert(new_idx);
             }
         }
     }
 
-    bins = new_bins;
-    bin_loads = new_loads;
-    bin_conflicts = new_bin_conflicts;
-    bad_bins = new_bad_bins;
+    // -------------------- Update item_bin --------------------
+    for (int item = 0; item < (int)item_bin.size(); item++) {
+        int old_bin = item_bin[item];
+
+        if (old_bin != -1) {
+            item_bin[item] = bin_map[old_bin];
+        }
+    }
+
+    // -------------------- Replace structures --------------------
+    bins = std::move(new_bins);
+    bin_loads = std::move(new_loads);
+    bin_conflicts = std::move(new_bin_conflicts);
+    bad_bins = std::move(new_bad_bins);
 }
 
 bool BPPCSolution::isFeasible() const {

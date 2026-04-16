@@ -18,7 +18,9 @@ int main() {
     // -------------------- Instance path --------------------
     // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_1_1_1.txt";
     // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_4_8_9.txt";
-    std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
+    // std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
+    // std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_2_6_9.txt";
+    std::string path = "../instances/BPPC_test_instances/BPPC/da/BPWC_3_8_9.txt";
 
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
@@ -50,7 +52,7 @@ int main() {
     bool verbose = false;
     double time_limit = 3600.0;
 
-    int k_runs = 10;  // number of runs
+    int k_runs = 1;  // number of runs
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();

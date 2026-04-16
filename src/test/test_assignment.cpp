@@ -12,20 +12,21 @@ int main() {
     using clock = std::chrono::high_resolution_clock;
 
     // -------------------- Instance path --------------------
-    std::string path = "../instances/BPPC_test_instances/BPPC/d/BPWC_3_8_9.txt";
+    std::string path = "../instances/BPPC_test_instances/BPPC/ua/BPWC_4_8_9.txt";
 
     // -------------------- Load instance --------------------
     BPPCInstance inst = readInstance(path);
 
-    int k1 = 1;
-    int k2 = 2;
-    int k3 = 5;
+    int k1 = 226;
+    int k2 = 423;
+    int k3 = 250;
     ImprovementType improvement = ImprovementType::BI;
 
     // -------------------- Build initial solution --------------------
     SolutionBuilder builder(inst);
     double beta = 0.2;
-    BPPCSolution sol = builder.greedy(beta, k1, k2, k3);
+    // BPPCSolution sol = builder.greedy(beta, k1, k2, k3);
+    BPPCSolution sol = builder.MFFD();
 
     std::cout << "--- Initial Solution ---\n";
     std::cout << "Bins: " << sol.binsUsed() << "\n";

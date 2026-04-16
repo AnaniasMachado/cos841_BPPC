@@ -9,10 +9,10 @@ scenario$maxExperiments <- 25000
 scenario$parallel <- 6
 scenario$debugLevel <- 1
 scenario$logFile <- "irace_logFile.Rdata"
-scenario$recoveryFile <- "irace_recoveryFile.Rdata"
+# scenario$recoveryFile <- "irace_recoveryFile.Rdata"
 scenario$softRestart <- TRUE
-scenario$firstTest <- 6
-scenario$eachTest <- 3
+scenario$firstTest <- 5
+scenario$eachTest <- 5
 scenario$deterministic <- 0
 scenario$targetRunner <- "target.R"
 
