@@ -52,7 +52,7 @@ int main() {
     bool verbose = false;
     double time_limit = 3600.0;
 
-    int k_runs = 1;  // number of runs
+    int k_runs = 10;  // number of runs
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();

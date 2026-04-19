@@ -126,8 +126,7 @@ void BPPCSolution::swapItems(int bin1, int idx1, int bin2, int idx2) {
 }
 
 void BPPCSolution::rebuildSolutionFromBins(
-    const std::vector<std::vector<int>>& new_bins)
-{
+    const std::vector<std::vector<int>>& new_bins) {
     bins = new_bins;
 
     const int m = static_cast<int>(bins.size());
@@ -591,4 +590,129 @@ int BPPCSolution::deltaRemoveMultiple(
     }
 
     return k1 * d_bins + k2 * d_excess + k3 * d_conflicts;
+}
+
+int BPPCSolution::deltaSwapSubset(
+    int binA,
+    const std::vector<int>& S,
+    int binB,
+    const std::vector<int>& R,
+    int k1, int k2, int k3) const {
+    if (binA == binB) return 0;
+    if (S.empty() && R.empty()) return 0;
+
+    const auto& A = bins[binA];
+    const auto& B = bins[binB];
+
+    // -------------------- LOADS --------------------
+    int sumS = 0, sumR = 0;
+
+    for (int x : S) sumS += weights[x];
+    for (int x : R) sumR += weights[x];
+
+    int loadA_before = bin_loads[binA];
+    int loadB_before = bin_loads[binB];
+
+    int loadA_after = loadA_before - sumS + sumR;
+    int loadB_after = loadB_before - sumR + sumS;
+
+    int d_excess =
+        excessDelta(loadA_before, loadA_after, C) +
+        excessDelta(loadB_before, loadB_after, C);
+
+    // -------------------- BUILD MASKS --------------------
+    const int W = (N + 63) / 64;
+
+    std::vector<uint64_t> maskS(W, 0ULL), maskR(W, 0ULL);
+
+    for (int x : S) maskS[x >> 6] |= (1ULL << (x & 63));
+    for (int x : R) maskR[x >> 6] |= (1ULL << (x & 63));
+
+    // -------------------- CONFLICTS --------------------
+    int d_conflicts = 0;
+
+    // ---------- BIN A ----------
+    // Remove S interactions with A \ S
+    for (int x : S) {
+        const auto& row = conflicts[x];
+
+        for (int y : A) {
+            if (maskS[y >> 6] & (1ULL << (y & 63))) continue;
+
+            d_conflicts -= (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // Remove internal conflicts inside S
+    for (int i = 0; i < (int)S.size(); i++) {
+        const auto& row = conflicts[S[i]];
+        for (int j = i + 1; j < (int)S.size(); j++) {
+            int y = S[j];
+            d_conflicts -= (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // Add R interactions with A \ S
+    for (int x : R) {
+        const auto& row = conflicts[x];
+
+        for (int y : A) {
+            if (maskS[y >> 6] & (1ULL << (y & 63))) continue;
+
+            d_conflicts += (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // Add internal conflicts inside R
+    for (int i = 0; i < (int)R.size(); i++) {
+        const auto& row = conflicts[R[i]];
+        for (int j = i + 1; j < (int)R.size(); j++) {
+            int y = R[j];
+            d_conflicts += (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // ---------- BIN B ----------
+    // Remove R interactions with B \ R
+    for (int x : R) {
+        const auto& row = conflicts[x];
+
+        for (int y : B) {
+            if (maskR[y >> 6] & (1ULL << (y & 63))) continue;
+
+            d_conflicts -= (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // Remove internal conflicts inside R
+    for (int i = 0; i < (int)R.size(); i++) {
+        const auto& row = conflicts[R[i]];
+        for (int j = i + 1; j < (int)R.size(); j++) {
+            int y = R[j];
+            d_conflicts -= (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // Add S interactions with B \ R
+    for (int x : S) {
+        const auto& row = conflicts[x];
+
+        for (int y : B) {
+            if (maskR[y >> 6] & (1ULL << (y & 63))) continue;
+
+            d_conflicts += (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // Add internal conflicts inside S
+    for (int i = 0; i < (int)S.size(); i++) {
+        const auto& row = conflicts[S[i]];
+        for (int j = i + 1; j < (int)S.size(); j++) {
+            int y = S[j];
+            d_conflicts += (row[y >> 6] >> (y & 63)) & 1ULL;
+        }
+    }
+
+    // -------------------- FINAL --------------------
+    return k2 * d_excess + k3 * d_conflicts;
 }

@@ -93,14 +93,14 @@ public:
     bool repackingGreedy(int N_ATTEMPTS);
     bool dualPhaseMove(int N_ASSIGN, int N_ATTEMPTS);
     bool setCovering();
+    bool kempeChain();
 
     void updateK();
     void updateElite(const BPPCSolution& candidate);
 
     void updatePool();
     void addToPool(const BPPCSolution& s);
-    
-    BPPCSolution destroyRepair();
+    void generateColumns();
 
     void setSolution(BPPCSolution& solution);
 };

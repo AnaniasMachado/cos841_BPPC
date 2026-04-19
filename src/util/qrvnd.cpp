@@ -82,6 +82,7 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
     }
 
     if (iter % 5 == 0 && iter >= 15) {
+        // ls.generateColumns();
         bool sc_improve = ls.setCovering();
         if (sc_improve) improved_global = true;
     }

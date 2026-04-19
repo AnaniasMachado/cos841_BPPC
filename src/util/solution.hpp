@@ -15,6 +15,7 @@ class BPPCSolution {
     friend class QRVND;
     friend class Perturbations;
     friend class AILS;
+    friend class ExperimentRunner;
 public:
     using Bin = std::vector<int>;
     using Bitset = std::vector<uint64_t>;
@@ -78,6 +79,9 @@ public:
     int deltaAddMultiple(const std::vector<int>& items, int bin_index,
                         int k1, int k2, int k3) const;
     int deltaRemoveMultiple(const std::vector<int>& items, int bin_index,
+                        int k1, int k2, int k3) const;
+    int deltaSwapSubset(int binA, const std::vector<int>& S,
+                        int binB, const std::vector<int>& R,
                         int k1, int k2, int k3) const;
 
 private:

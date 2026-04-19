@@ -44,6 +44,11 @@ int main(int argc, char* argv[]) {
     int K2 = std::stoi(argv[3]);
     int K3 = std::stoi(argv[4]);
 
+    if ((K1 >= K2) || (K1 >= K3)) {
+        std::cout << INT_MAX << std::endl;
+        return 0;
+    }
+
     // -------------------- Default AILS parameters --------------------
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;

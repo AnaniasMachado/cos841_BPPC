@@ -12,69 +12,72 @@ GUROBI_HOME = /home/pc-515/gurobi1301/linux64
 GUROBI_INC = -I$(GUROBI_HOME)/include
 GUROBI_LIB = -L$(GUROBI_HOME)/lib -lgurobi_c++ -lgurobi130
 
-# Runtime library path (important when running executables)
+# Runtime library path
 export LD_LIBRARY_PATH := $(GUROBI_HOME)/lib:$(LD_LIBRARY_PATH)
 
 # -------------------- Directories --------------------
 UTIL_DIR = util
 MT_DIR = metaheuristic
 TEST_DIR = test
+EXP_DIR = experiment
 BIN_DIR = bin
 
 # -------------------- Ensure bin exists --------------------
 $(shell mkdir -p $(BIN_DIR))
 
 # -------------------- Source files --------------------
-UTIL_SRCS = $(UTIL_DIR)/bppc.cpp \
-            $(UTIL_DIR)/solution.cpp \
-            $(UTIL_DIR)/builder.cpp \
-            $(UTIL_DIR)/local_search.cpp \
-            $(UTIL_DIR)/perturbations.cpp \
-            $(UTIL_DIR)/rvnd.cpp \
-            $(UTIL_DIR)/qrvnd.cpp \
-            $(UTIL_DIR)/bks.cpp
+UTIL_SRCS = bppc.cpp \
+            solution.cpp \
+            builder.cpp \
+            local_search.cpp \
+            perturbations.cpp \
+            rvnd.cpp \
+            qrvnd.cpp \
+            bks.cpp \
+            experiment_runner.cpp
 
-MT_SRCS = $(MT_DIR)/ails.cpp
+MT_SRCS = ails.cpp
 
-TEST_SRCS = $(TEST_DIR)/test_bppc.cpp \
-            $(TEST_DIR)/test_solution.cpp \
-            $(TEST_DIR)/test_local_search.cpp \
-            $(TEST_DIR)/test_perturbations.cpp \
-            $(TEST_DIR)/test_ails.cpp \
-            $(TEST_DIR)/test_builder.cpp \
-            $(TEST_DIR)/test_assignment.cpp
+TEST_SRCS = test_bppc.cpp \
+            test_solution.cpp \
+            test_local_search.cpp \
+            test_perturbations.cpp \
+            test_ails.cpp \
+            test_builder.cpp \
+            test_assignment.cpp \
+            test_kempe.cpp
+
+MAIN_SRCS = run_ails.cpp
+
+# -------------------- VPATH --------------------
+VPATH = $(UTIL_DIR) $(MT_DIR) $(TEST_DIR) $(EXP_DIR)
 
 # -------------------- Object files --------------------
-UTIL_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(UTIL_SRCS)))
-MT_OBJS   = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(MT_SRCS)))
-TEST_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(notdir $(TEST_SRCS)))
+UTIL_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(UTIL_SRCS))
+MT_OBJS   = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(MT_SRCS))
+TEST_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(TEST_SRCS))
+MAIN_OBJS = $(patsubst %.cpp,$(BIN_DIR)/%.o,$(MAIN_SRCS))
 
 # -------------------- Executables --------------------
-TEST_BINS = $(patsubst %.cpp,$(BIN_DIR)/%,$(notdir $(TEST_SRCS)))
-AUX_BIN = $(BIN_DIR)/ails_runner
+TEST_BINS = $(patsubst %.cpp,$(BIN_DIR)/%,$(TEST_SRCS))
+MAIN_BINS = $(BIN_DIR)/run_ails
 
 # -------------------- Default target --------------------
-all: $(TEST_BINS) $(AUX_BIN)
+all: $(TEST_BINS) $(MAIN_BINS)
 
-# -------------------- Compile utility objects --------------------
-$(BIN_DIR)/%.o: $(UTIL_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) -c $< -o $@
-
-# -------------------- Compile metaheuristic objects --------------------
-$(BIN_DIR)/%.o: $(MT_DIR)/%.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) -c $< -o $@
-
-# -------------------- Compile test objects --------------------
-$(BIN_DIR)/%.o: $(TEST_DIR)/%.cpp | $(BIN_DIR)
+# -------------------- Compile objects --------------------
+$(BIN_DIR)/%.o: %.cpp | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) -c $< -o $@
 
 # -------------------- Link test executables --------------------
-$(BIN_DIR)/%: $(BIN_DIR)/%.o $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(HIGHS_LIB) $(GUROBI_LIB)
+$(BIN_DIR)/test_%: $(BIN_DIR)/test_%.o $(UTIL_OBJS) $(MT_OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(HIGHS_LIB) $(GUROBI_LIB) \
+	    -Wl,-rpath,$(GUROBI_HOME)/lib
 
-# -------------------- Link AILS runner --------------------
-$(AUX_BIN): $(UTIL_DIR)/ails_runner.cpp $(UTIL_OBJS) $(MT_OBJS)
-	$(CXX) $(CXXFLAGS) $(HIGHS_INC) $(GUROBI_INC) $^ -o $@ $(HIGHS_LIB) $(GUROBI_LIB)
+# -------------------- Link main programs --------------------
+$(BIN_DIR)/run_ails: $(MAIN_OBJS) $(UTIL_OBJS) $(MT_OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(HIGHS_LIB) $(GUROBI_LIB) \
+	    -Wl,-rpath,$(GUROBI_HOME)/lib
 
 # -------------------- Ensure bin exists --------------------
 $(BIN_DIR):

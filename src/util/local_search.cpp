@@ -12,12 +12,15 @@ LocalSearch::LocalSearch(BPPCSolution& solution,
 
     K = sol->bins_used;
     best_obj = sol->computeObjective(K1, K2, K3);
-    S_pool = std::max(100, (int)(4.5 * K));
-    S_min = std::max(75, (int)(4.0 * K));
-    S_max = std::max(150, (int)(5.0 * K));
-    // S_pool = std::max(100, (int)(7.5 * K));
-    // S_min = std::max(75, (int)(5.0 * K));
-    // S_max = std::max(150, (int)(9.0 * K));
+    // S_pool = std::max(100, (int)(4.5 * K));
+    // S_min = std::max(75, (int)(4.0 * K));
+    // S_max = std::max(150, (int)(5.0 * K));
+    S_pool = std::max(100, (int)(9.0 * K));
+    S_min = std::max(75, (int)(7.0 * K));
+    S_max = std::max(150, (int)(12.0 * K));
+    // S_pool = std::max(100, (int)(12.5 * K));
+    // S_min = std::max(75, (int)(10.0 * K));
+    // S_max = std::max(150, (int)(15.0 * K));
 
     // std::cout << "S_pool: " << S_pool << "\n";
     // std::cout << "S_min: " << S_min << "\n";
@@ -1303,22 +1306,6 @@ bool LocalSearch::setCovering() {
         " n_cols=" + std::to_string(n_cols) +
         " K-1=" + std::to_string(K_upper));
 
-    std::vector<bool> covered(n_items, false);
-
-    for (int j = 0; j < n_cols; j++) {
-        for (int i = 0; i < n_items; i++) {
-            if (pool[j].col.mask[i]) {
-                covered[i] = true;
-            }
-        }
-    }
-
-    for (int i = 0; i < n_items; i++) {
-        if (!covered[i]) {
-            std::cout << "[SC ERROR] item " << i << " not coverable!\n";
-        }
-    }
-
     // ---------------- Gurobi model ----------------
     try {
 
@@ -1329,6 +1316,8 @@ bool LocalSearch::setCovering() {
         GRBModel model = GRBModel(env);
 
         model.set(GRB_DoubleParam_TimeLimit, TIME_LIMIT_MS / 1000.0);
+        // model.set(GRB_IntParam_Threads, 1);
+        model.set(GRB_IntParam_MIPFocus, 1);
 
         // ---------------- VARIABLES ----------------
         std::vector<GRBVar> x(n_cols);
@@ -1380,6 +1369,11 @@ bool LocalSearch::setCovering() {
 
         if (status == GRB_INFEASIBLE) {
             log("[SC] infeasible restricted pool");
+            return false;
+        }
+
+        if (model.get(GRB_IntAttr_SolCount) == 0) {
+            log("[SC] no feasible solution found");
             return false;
         }
 
@@ -1468,9 +1462,7 @@ void LocalSearch::updateK() {
 
 void LocalSearch::updateElite(const BPPCSolution& candidate) {
 
-    if (candidate.computeObjective(K1, K2, K3) >= best_obj) {
-        return;
-    }
+    if (candidate.computeObjective(K1, K2, K3) >= best_obj) return;
 
     sol->bins = candidate.bins;
 
@@ -1726,8 +1718,7 @@ void LocalSearch::updatePoolSize(bool optimal_solved) {
 }
 
 std::vector<std::vector<int>> LocalSearch::repairSolution(
-    const std::vector<std::vector<int>>& input_bins)
-{
+    const std::vector<std::vector<int>>& input_bins) {
     std::vector<std::vector<int>> bins = input_bins;
 
     const int n_items = sol->N;
@@ -1808,106 +1799,397 @@ std::vector<std::vector<int>> LocalSearch::repairSolution(
     return best_bins;
 }
 
-BPPCSolution LocalSearch::destroyRepair() {
+bool LocalSearch::kempeChain() {
+    if (sol->bin_conflicts.empty()) return false;
 
-    // ---- Copy current solution ----
-    BPPCSolution s = *sol;
+    bool full_clean = false;
+    bool improved_global = false;
 
-    const int C = s.C;
+    while (true) {
 
-    // ---- Parameters ----
-    double destroy_ratio = 0.25;
-    int trials_per_item = 5;
+        bool improved = false;
 
-    // ---- Select bins to destroy ----
-    int n_destroy = std::max(1, (int)(destroy_ratio * s.bins.size()));
+        int n_bins = sol->bins.size();
+        if (n_bins < 2) break;
 
-    std::vector<int> idx(s.bins.size());
-    std::iota(idx.begin(), idx.end(), 0);
-    std::shuffle(idx.begin(), idx.end(), rng);
+        // -------------------- Copy + shuffle bad bins --------------------
+        std::vector<int> bad_list(sol->bad_bins.begin(), sol->bad_bins.end());
+        std::shuffle(bad_list.begin(), bad_list.end(), rng);
 
-    std::vector<int> removed_items;
+        for (int a : bad_list) {
 
-    // ---- Destroy phase (collect items) ----
-    for (int i = 0; i < n_destroy; i++) {
-        int b = idx[i];
+            if (sol->bin_conflicts[a] == 0) continue;
 
-        for (int it : s.bins[b]) {
-            removed_items.push_back(it);
+            // optional: also shuffle target bins
+            std::vector<int> order_b(n_bins);
+            std::iota(order_b.begin(), order_b.end(), 0);
+            std::shuffle(order_b.begin(), order_b.end(), rng);
+
+            for (int b : order_b) {
+
+                if (a == b) continue;
+
+                const auto& A = sol->bins[a];
+                const auto& B = sol->bins[b];
+
+                if (A.empty() || B.empty()) continue;
+
+                // -------------------- Select seed WITH conflicts --------------------
+                int seed = -1;
+
+                // also shuffle items for diversification
+                std::vector<int> A_shuffled = A;
+                std::shuffle(A_shuffled.begin(), A_shuffled.end(), rng);
+
+                for (int x : A_shuffled) {
+                    if (sol->itemConflicts(x, a) > 0) {
+                        seed = x;
+                        break;
+                    }
+                }
+
+                if (seed == -1) continue;
+
+                // -------------------- Build Kempe Chain --------------------
+                std::vector<int> chainA, chainB;
+                std::vector<char> inA(sol->N, 0), inB(sol->N, 0);
+
+                chainA.push_back(seed);
+                inA[seed] = 1;
+
+                bool changed = true;
+
+                while (changed) {
+                    changed = false;
+
+                    // expand into B
+                    for (int u : B) {
+                        if (inB[u]) continue;
+
+                        for (int v : chainA) {
+                            if (sol->hasConflict(u, v)) {
+                                chainB.push_back(u);
+                                inB[u] = 1;
+                                changed = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // expand into A
+                    for (int u : A) {
+                        if (inA[u]) continue;
+
+                        for (int v : chainB) {
+                            if (sol->hasConflict(u, v)) {
+                                chainA.push_back(u);
+                                inA[u] = 1;
+                                changed = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (chainA.empty() && chainB.empty()) continue;
+
+                // -------------------- Evaluate --------------------
+                int delta = sol->deltaSwapSubset(a, chainA, b, chainB,
+                                                K1, K2, K3);
+
+                if (delta >= 0) continue;
+
+                // -------------------- Apply move --------------------
+                for (int x : chainA)
+                    sol->moveItem(x, a, b);
+
+                for (int x : chainB)
+                    sol->moveItem(x, b, a);
+
+                sol->removeEmptyBins();
+
+                improved = true;
+                improved_global = true;
+
+                break; // restart search
+            }
+
+            if (improved) break;
         }
+
+        // -------------------- Stop conditions --------------------
+        if (!full_clean) break;
+        if (!improved) break;
     }
 
-    // ---- Actually remove items using moveItem ----
-    for (int item : removed_items) {
+    return improved_global;
+}
 
-        int from_bin = -1;
+void LocalSearch::generateColumns() {
+    bool verbose = false;
 
-        // find current bin of item
-        for (int b = 0; b < (int)s.bins.size(); b++) {
-            for (int x : s.bins[b]) {
-                if (x == item) {
-                    from_bin = b;
+    int N_COLUMNS = 25;
+    int PRICING_ITERS = 12;
+    int SEEDS_PER_ITER = 10;
+    int LOCAL_STEPS = 15;
+
+    auto log = [&](const std::string& msg) {
+        if (verbose) std::cout << msg << "\n";
+    };
+
+    const int N = sol->N;
+    size_t before = pool.size();
+
+    std::uniform_int_distribution<int> rnd(0, N - 1);
+    std::uniform_real_distribution<double> noise(0.0, 1e-4);
+
+    std::unordered_set<size_t> local_seen;
+    std::vector<double> dual_values(N, 0.0);
+
+    // ---------------- LP ONCE ----------------
+    try {
+        GRBEnv env(true);
+        env.set("OutputFlag", "0");
+        env.start();
+
+        GRBModel model(env);
+
+        int n_cols = (int)pool.size();
+        if (n_cols == 0) return;
+
+        std::vector<GRBVar> x(n_cols);
+
+        for (int j = 0; j < n_cols; j++)
+            x[j] = model.addVar(0.0, 1.0, pool[j].col.cost, GRB_CONTINUOUS);
+
+        std::vector<GRBConstr> cover(N);
+
+        for (int i = 0; i < N; i++) {
+            GRBLinExpr expr = 0;
+            for (int j = 0; j < n_cols; j++)
+                if (pool[j].col.mask[i])
+                    expr += x[j];
+
+            cover[i] = model.addConstr(expr >= 1);
+        }
+
+        model.optimize();
+
+        if (model.get(GRB_IntAttr_Status) != GRB_OPTIMAL)
+            return;
+
+        for (int i = 0; i < N; i++)
+            dual_values[i] = cover[i].get(GRB_DoubleAttr_Pi);
+
+    } catch (...) {
+        return;
+    }
+
+    // ---------------- COST ----------------
+    auto reducedCost = [&](const std::vector<int>& items) {
+        double dual_sum = 0.0;
+        int load = 0;
+        int conflicts = 0;
+
+        for (int i = 0; i < (int)items.size(); i++) {
+            int u = items[i];
+            dual_sum += dual_values[u];
+            load += sol->weights[u];
+
+            for (int j = i + 1; j < (int)items.size(); j++)
+                if (sol->hasConflict(u, items[j]))
+                    conflicts++;
+        }
+
+        int excess = std::max(0, load - sol->C);
+        double cost = K1 + K2 * excess + K3 * conflicts;
+
+        return cost - dual_sum;
+    };
+
+    auto evaluate = [&](const std::vector<int>& items) {
+        return reducedCost(items);
+    };
+
+    // ---------------- TRY ADD ----------------
+    auto try_add = [&](const std::vector<int>& items) {
+        if (items.size() < 2) return false;
+
+        size_t h = hash_bin(items);
+        if (local_seen.count(h)) return false;
+        local_seen.insert(h);
+
+        Column col;
+        col.items = items;
+        col.buildMask(N);
+
+        int load = 0;
+        int conflicts = 0;
+
+        for (int i = 0; i < (int)items.size(); i++) {
+            load += sol->weights[items[i]];
+            for (int j = i + 1; j < (int)items.size(); j++)
+                if (sol->hasConflict(items[i], items[j]))
+                    conflicts++;
+        }
+
+        int excess = std::max(0, load - sol->C);
+        col.cost = K1 + K2 * excess + K3 * conflicts;
+
+        addColumn(std::move(col), N);
+        return true;
+    };
+
+    // ---------------- LOCAL SEARCH ----------------
+    auto improve = [&](std::vector<int>& items) {
+
+        std::vector<char> used(N, false);
+        int load = 0;
+
+        for (int i : items) {
+            used[i] = true;
+            load += sol->weights[i];
+        }
+
+        for (int step = 0; step < LOCAL_STEPS; step++) {
+
+            bool improved = false;
+
+            // --- TRY ADD ---
+            for (int t = 0; t < 20; t++) {
+
+                int i = rnd(rng);
+                if (used[i]) continue;
+
+                if (load + sol->weights[i] > sol->C)
+                    continue;
+
+                const auto& row = sol->conflicts[i];
+                bool ok = true;
+
+                for (int j : items) {
+                    if (row[j >> 6] & (1ULL << (j & 63))) {
+                        ok = false;
+                        break;
+                    }
+                }
+
+                if (!ok) continue;
+
+                double gain = dual_values[i];
+
+                if (gain > 0) {
+                    items.push_back(i);
+                    used[i] = true;
+                    load += sol->weights[i];
+                    improved = true;
                     break;
                 }
             }
-            if (from_bin != -1) break;
-        }
 
-        // move to a temporary "new bin" (acts like removal)
-        s.moveItem(item, from_bin, s.bins.size());
-    }
+            if (improved) continue;
 
-    // ---- Shuffle items ----
-    std::shuffle(removed_items.begin(), removed_items.end(), rng);
+            // --- TRY REMOVE WORST ---
+            int worst_pos = -1;
+            double worst_gain = 1e18;
 
-    // ---- Repair phase ----
-    for (int item : removed_items) {
+            for (int i = 0; i < (int)items.size(); i++) {
+                int u = items[i];
+                double g = dual_values[u];
 
-        int best_bin = -1;
-        int best_penalty = INT_MAX;
+                if (g < worst_gain) {
+                    worst_gain = g;
+                    worst_pos = i;
+                }
+            }
 
-        // find current bin (it is in a singleton bin now)
-        int from_bin = -1;
-        for (int b = 0; b < (int)s.bins.size(); b++) {
-            if (s.bins[b].size() == 1 && s.bins[b][0] == item) {
-                from_bin = b;
+            if (worst_pos != -1 && worst_gain < 0) {
+                int u = items[worst_pos];
+                load -= sol->weights[u];
+                used[u] = false;
+                items.erase(items.begin() + worst_pos);
+                improved = true;
+            }
+
+            if (!improved)
                 break;
+        }
+    };
+
+    // ---------------- MAIN LOOP ----------------
+    int generated = 0;
+
+    for (int it = 0; it < PRICING_ITERS; it++) {
+
+        for (int seed_try = 0; seed_try < SEEDS_PER_ITER; seed_try++) {
+
+            std::vector<int> items;
+            std::vector<char> used(N, false);
+            int load = 0;
+
+            // --- greedy seed construction ---
+            for (int step = 0; step < 50; step++) {
+
+                int best = -1;
+                double best_score = 0;
+
+                for (int i = 0; i < N; i++) {
+
+                    if (used[i]) continue;
+                    if (load + sol->weights[i] > sol->C) continue;
+
+                    const auto& row = sol->conflicts[i];
+                    bool ok = true;
+
+                    for (int j : items) {
+                        if (row[j >> 6] & (1ULL << (j & 63))) {
+                            ok = false;
+                            break;
+                        }
+                    }
+
+                    if (!ok) continue;
+
+                    double score = dual_values[i] + noise(rng);
+
+                    if (score > best_score) {
+                        best_score = score;
+                        best = i;
+                    }
+                }
+
+                if (best == -1)
+                    break;
+
+                items.push_back(best);
+                used[best] = true;
+                load += sol->weights[best];
+            }
+
+            if (items.empty())
+                continue;
+
+            // --- LOCAL IMPROVEMENT ---
+            improve(items);
+
+            double rc = evaluate(items);
+
+            if (rc < -1e-6) {
+                if (try_add(items)) {
+                    generated++;
+                    if (generated >= N_COLUMNS)
+                        break;
+                }
             }
         }
 
-        // Try random bins
-        for (int t = 0; t < trials_per_item; t++) {
-
-            int b = rng() % s.bins.size();
-            if (b == from_bin) continue;
-
-            // ---- evaluate insertion ----
-            int delta_conflicts = 0;
-            for (int u : s.bins[b]) {
-                if (s.hasConflict(u, item))
-                    delta_conflicts++;
-            }
-
-            int new_load = s.bin_loads[b] + s.weights[item];
-            int excess = std::max(0, new_load - C);
-
-            int pen = excess + delta_conflicts;
-
-            if (pen < best_penalty) {
-                best_penalty = pen;
-                best_bin = b;
-            }
-        }
-
-        // ---- Apply best move ----
-        if (best_bin != -1) {
-            s.moveItem(item, from_bin, best_bin);
-        }
-        // else: keep singleton bin (already created)
+        if (generated >= N_COLUMNS)
+            break;
     }
 
-    // ---- Remove empty bins if your structure leaves any ----
-    s.removeEmptyBins();
+    log("[CG] added=" + std::to_string(pool.size() - before));
+    log("[CG] pool_after=" + std::to_string(pool.size()));
 
-    return s;
+    trimPool();
 }
+
