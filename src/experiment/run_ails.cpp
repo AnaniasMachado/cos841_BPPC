@@ -49,8 +49,9 @@ int main() {
     // -------------------- AILS parameters --------------------
     int k1 = 226, k2 = 423, k3 = 250;
 
-    int max_iterations = 384;
-    int max_no_improve = 22;
+    // int max_iterations = 384;
+    // int max_no_improve = 22;
+    int max_iterations = 50;
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;
 
@@ -116,7 +117,7 @@ int main() {
             auto start = clock::now();
 
             AILS ails(inst, k1, k2, k3,
-                      max_iterations, max_no_improve,
+                      max_iterations,
                       acceptance, improvement,
                       useUCB, c,
                       builder, beta,

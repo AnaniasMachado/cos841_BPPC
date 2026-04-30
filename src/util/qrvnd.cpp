@@ -18,11 +18,11 @@ QRVND::QRVND(BPPCSolution& solution, ImprovementType improvement_type_,
     initialized = false;
     current_p = 0;
 
-    perms = {
-        {0,1,2},{0,2,1},
-        {1,0,2},{1,2,0},
-        {2,0,1},{2,1,0}
-    };
+    // perms = {
+    //     {0,1,2},{0,2,1},
+    //     {1,0,2},{1,2,0},
+    //     {2,0,1},{2,1,0}
+    // };
 
     // perms = {
     //     {0,1,2,3}, {0,1,3,2}, {0,2,1,3}, {0,2,3,1}, {0,3,1,2}, {0,3,2,1},
@@ -31,10 +31,48 @@ QRVND::QRVND(BPPCSolution& solution, ImprovementType improvement_type_,
     //     {3,0,1,2}, {3,0,2,1}, {3,1,0,2}, {3,1,2,0}, {3,2,0,1}, {3,2,1,0}
     // };
 
+    perms = generatePermutations(4);
+
     Q = std::vector<std::vector<double>>(
         perms.size(),
         std::vector<double>(perms.size(), 0.0)
     );
+}
+
+// -------------------- Generate Permutations --------------------
+std::vector<std::vector<int>> QRVND::generatePermutations(int n) {
+    std::vector<std::vector<int>> perms;
+    std::vector<int> current;
+    std::vector<bool> used(n, false);
+
+    backtrack(n, current, used, perms);
+
+    return perms;
+}
+
+// -------------------- Backtrack --------------------
+void QRVND::backtrack(int n,
+                      std::vector<int>& current,
+                      std::vector<bool>& used,
+                      std::vector<std::vector<int>>& perms) {
+
+    if ((int)current.size() == n) {
+        perms.push_back(current);
+        return;
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (!used[i]) {
+            used[i] = true;
+            current.push_back(i);
+
+            backtrack(n, current, used, perms);
+
+            // undo choice (backtrack)
+            current.pop_back();
+            used[i] = false;
+        }
+    }
 }
 
 // -------------------- Select --------------------
@@ -66,9 +104,10 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         bool improved = false;
 
         switch (c[k]) {
-            case 0: improved = ls.classic();                            break;
-            case 1: improved = ls.ejectionGlobal();                     break;
-            case 2: improved = ls.dualPhaseMove((int)sol->N / 5, 10);   break;
+            case 0: improved = ls.classic();                    break;
+            case 1: improved = ls.assignment((int)sol->N / 5);  break;
+            case 2: improved = ls.ejectionChain();              break;
+            case 3: improved = ls.grenade();                    break;
         }
 
         if (improved) {
@@ -81,15 +120,15 @@ bool QRVND::applyOrder(const std::vector<int>& order) {
         }
     }
 
-    if (iter % 5 == 0 && iter >= 15) {
-        // ls.generateColumns();
-        bool sc_improve = ls.setCovering();
-        if (sc_improve) improved_global = true;
-    }
+    // if (iter % 25 == 0 && iter >= 25) {
+    //     // ls.generateColumns();
+    //     bool sc_improve = ls.setCovering();
+    //     if (sc_improve) improved_global = true;
+    // }
 
     if (improved_global) {
+        ls.updateElite();
         ls.updateK();
-        ls.updateElite(*sol);
         ls.updatePool();
     }
 

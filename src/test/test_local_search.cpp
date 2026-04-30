@@ -49,7 +49,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -76,7 +76,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -103,7 +103,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -130,7 +130,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -157,7 +157,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -184,7 +184,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -211,7 +211,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -238,7 +238,7 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -265,13 +265,67 @@ int main() {
         auto end = clock::now();
 
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
         double time = std::chrono::duration<double>(end - start).count();
 
         std::cout << "===== EJECTION GLOBAL =====\n";
+        std::cout << "Improved: " << improved << "\n";
+        std::cout << "Before: " << before << "\n";
+        std::cout << "After: " << after << "\n";
+        std::cout << "Time: " << time << " s\n\n";
+    }
+
+    // ======================================================
+    // -------------------- EJECTION CHAIN ------------------------------
+    // ======================================================
+    {
+        BPPCSolution temp = sol;
+        ls.setSolution(temp);
+
+        int before = temp.computeObjective(k1, k2, k3);
+
+        auto start = clock::now();
+        bool improved = ls.ejectionChain();
+        auto end = clock::now();
+
+        ls.updateK();
+        ls.updateElite();
+        ls.addToPool(temp);
+
+        int after = temp.computeObjective(k1, k2, k3);
+        double time = std::chrono::duration<double>(end - start).count();
+
+        std::cout << "===== EJECTION CHAIN =====\n";
+        std::cout << "Improved: " << improved << "\n";
+        std::cout << "Before: " << before << "\n";
+        std::cout << "After: " << after << "\n";
+        std::cout << "Time: " << time << " s\n\n";
+    }
+
+    // ======================================================
+    // -------------------- GRENADE ------------------------------
+    // ======================================================
+    {
+        BPPCSolution temp = sol;
+        ls.setSolution(temp);
+
+        int before = temp.computeObjective(k1, k2, k3);
+
+        auto start = clock::now();
+        bool improved = ls.grenade();
+        auto end = clock::now();
+
+        ls.updateK();
+        ls.updateElite();
+        ls.addToPool(temp);
+
+        int after = temp.computeObjective(k1, k2, k3);
+        double time = std::chrono::duration<double>(end - start).count();
+
+        std::cout << "===== GRENADE =====\n";
         std::cout << "Improved: " << improved << "\n";
         std::cout << "Before: " << before << "\n";
         std::cout << "After: " << after << "\n";
@@ -292,7 +346,7 @@ int main() {
         auto end = clock::now();
         
         ls.updateK();
-        ls.updateElite(temp);
+        ls.updateElite();
         ls.addToPool(temp);
 
         int after = temp.computeObjective(k1, k2, k3);
@@ -315,7 +369,7 @@ int main() {
         int before = temp.computeObjective(k1, k2, k3);
 
         auto start = clock::now();
-        bool improved = ls.setCovering();
+        bool improved = ls.setCoveringBinFeasible();
         auto end = clock::now();
 
         int after = temp.computeObjective(k1, k2, k3);

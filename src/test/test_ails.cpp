@@ -30,8 +30,9 @@ int main() {
     int k3 = 250;
 
     // AILS parameters
-    int max_iterations = 384;
-    int max_no_improve = 22;
+    // int max_iterations = 384;
+    // int max_no_improve = 22;
+    int max_iterations = 50;
     AcceptanceType acceptance = AcceptanceType::BEST;
     ImprovementType improvement = ImprovementType::BI;
 
@@ -49,10 +50,10 @@ int main() {
     double gamma = 0.7455;
     double epsilon = 0.0377;
 
-    bool verbose = false;
+    bool verbose = true;
     double time_limit = 3600.0;
 
-    int k_runs = 10;  // number of runs
+    int k_runs = 5;  // number of runs
 
     std::cout << "===== INSTANCE STATISTICS =====\n";
     inst.printStatistics();
@@ -83,7 +84,7 @@ int main() {
         auto start = clock::now();
 
         AILS ails(inst, k1, k2, k3,
-                  max_iterations, max_no_improve,
+                  max_iterations,
                   acceptance, improvement,
                   useUCB, c,
                   builder,

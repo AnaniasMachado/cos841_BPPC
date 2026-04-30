@@ -29,9 +29,10 @@ void RVND::run() {
         bool improved = false;
 
         switch (p[k]) {
-            case 0: improved = ls.classic();                              break;
-            case 1: improved = ls.ejectionGlobal();                       break;
-            case 2: improved = ls.dualPhaseMove((int)sol->N / 5, 10);     break;
+            case 0: improved = ls.classic();                    break;
+            case 1: improved = ls.assignment((int)sol->N / 5);  break;
+            case 2: improved = ls.ejectionChain();              break;
+            case 3: improved = ls.grenade();                    break;
         }
 
         if (improved) {
@@ -44,14 +45,15 @@ void RVND::run() {
         }
     }
 
-    if (iter % 5 == 0 && iter >= 15) {
-        bool sc_improve = ls.setCovering();
-        if (sc_improve) improved_global = true;
-    }
+    // if (iter % 25 == 0 && iter >= 25) {
+    //     ls.generateColumns();
+    //     bool sc_improve = ls.setCovering();
+    //     if (sc_improve) improved_global = true;
+    // }
 
     if (improved_global) {
+        ls.updateElite();
         ls.updateK();
-        ls.updateElite(*sol);
         ls.updatePool();
     }
 

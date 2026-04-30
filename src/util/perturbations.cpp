@@ -194,3 +194,85 @@ void Perturbations::splitK(BPPCSolution& sol, int k) {
 
     sol.removeEmptyBins();
 }
+
+// -------------------- Shake --------------------
+void Perturbations::shake(BPPCSolution& sol, int k) {
+    if (sol.bins.size() <= 1 || k <= 0) {
+        return;
+    }
+
+    auto rand_int = [&](int l, int r) {
+        std::uniform_int_distribution<int> dist(l, r);
+        return dist(rng);
+    };
+
+    // -------------------- Collect candidate problematic items from bad bins --------------------
+    std::vector<int> problematic_pool;
+    std::vector<char> used_item(sol.N, 0);
+
+    for (int b : sol.bad_bins) {
+        if (b < 0 || b >= (int)sol.bins.size()) continue;
+
+        for (int item : sol.bins[b]) {
+            if (!used_item[item]) {
+                used_item[item] = 1;
+                problematic_pool.push_back(item);
+            }
+        }
+    }
+
+    // -------------------- Select ~50% problematic items --------------------
+    int want_problematic = k / 2;
+    std::shuffle(problematic_pool.begin(), problematic_pool.end(), rng);
+
+    std::vector<int> selected;
+    selected.reserve(k);
+
+    for (int i = 0; i < std::min(want_problematic, (int)problematic_pool.size()); ++i) {
+        selected.push_back(problematic_pool[i]);
+    }
+
+    // Mark already selected
+    std::vector<char> chosen(sol.N, 0);
+    for (int item : selected) {
+        chosen[item] = 1;
+    }
+
+    // -------------------- Fill remaining slots with random items --------------------
+    std::vector<int> random_pool;
+    random_pool.reserve(sol.N);
+
+    for (int item = 0; item < sol.N; ++item) {
+        if (!chosen[item]) {
+            random_pool.push_back(item);
+        }
+    }
+
+    std::shuffle(random_pool.begin(), random_pool.end(), rng);
+
+    int remaining = k - (int)selected.size();
+    for (int i = 0; i < std::min(remaining, (int)random_pool.size()); ++i) {
+        selected.push_back(random_pool[i]);
+    }
+
+    // -------------------- Randomize relocation order --------------------
+    std::shuffle(selected.begin(), selected.end(), rng);
+
+    // -------------------- Relocate selected items --------------------
+    for (int item : selected) {
+        int from_bin = sol.item_bin[item];
+
+        if ((int)sol.bins.size() <= 1) {
+            break;
+        }
+
+        int to_bin = rand_int(0, (int)sol.bins.size() - 2);
+        if (to_bin >= from_bin) {
+            ++to_bin;
+        }
+
+        sol.moveItem(item, from_bin, to_bin);
+    }
+
+    sol.removeEmptyBins();
+}

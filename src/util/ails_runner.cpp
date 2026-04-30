@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
 
     // -------------------- Run AILS --------------------
     AILS ails(inst, K1, K2, K3,
-              max_iterations, max_no_improve,
+              max_iterations,
               acceptance, improvement,
               useUCB, c,
               builder, beta, useQRVND,

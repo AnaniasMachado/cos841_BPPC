@@ -12,7 +12,8 @@ enum class PerturbationType {
     MERGE,
     MERGEK,
     SPLIT,
-    SPLITK
+    SPLITK,
+    SHAKE
 };
 
 class Perturbations {
@@ -39,6 +40,9 @@ public:
 
     // Split k random bin into others
     void splitK(BPPCSolution& sol, int k);
+
+    // Relocate a mix of problematic and random items
+    void shake(BPPCSolution& sol, int k);
 };
 
 #endif

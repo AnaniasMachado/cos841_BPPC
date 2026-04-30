@@ -33,7 +33,6 @@ public:
     AILS(const BPPCInstance& instance,
          int k1, int k2, int k3,
          int max_it,
-         int max_no_imp,
          AcceptanceType acceptance_type = AcceptanceType::BEST,
          ImprovementType improvement_type = ImprovementType::BI,
          bool use_ucb = true,
@@ -54,7 +53,6 @@ private:
 
     int K1, K2, K3;
     int max_iterations;
-    int max_no_improve;
     AcceptanceType acceptance_type;
     ImprovementType improvement_type;
 
@@ -77,14 +75,16 @@ private:
     bool verbose;
     double time_limit;
 
-    int computeK(PerturbationType perturbation_type, BPPCSolution& sol, int no_improve);
+    int computeLowerBound(const BPPCSolution& s) const;
+
+    int computeK(PerturbationType perturbation_type, BPPCSolution& sol, int iter);
 
     PerturbationType getPerturbationType(int idx);
 
     PerturbationType selectPerturbation(int iter);
 
-    void applyPerturbation(PerturbationType perturbation_type, BPPCSolution& sol,
-                           int no_improve);
+    void applyPerturbation(PerturbationType perturbation_type,
+                            BPPCSolution& sol, int iter);
 
     void updateUCB(PerturbationType perturbation_type, bool reward);
 };

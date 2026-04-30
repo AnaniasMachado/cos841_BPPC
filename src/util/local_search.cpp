@@ -11,16 +11,17 @@ LocalSearch::LocalSearch(BPPCSolution& solution,
     rng.seed(std::random_device{}());
 
     K = sol->bins_used;
-    best_obj = sol->computeObjective(K1, K2, K3);
-    // S_pool = std::max(100, (int)(4.5 * K));
-    // S_min = std::max(75, (int)(4.0 * K));
-    // S_max = std::max(150, (int)(5.0 * K));
-    S_pool = std::max(100, (int)(9.0 * K));
-    S_min = std::max(75, (int)(7.0 * K));
-    S_max = std::max(150, (int)(12.0 * K));
+    // S_pool = std::max(100, (int)(6.0 * K));
+    // S_min = std::max(75, (int)(5.0 * K));
+    // S_max = std::max(150, (int)(7.0 * K));
+    // S_pool = std::max(100, (int)(9.0 * K));
+    // S_min = std::max(75, (int)(7.0 * K));
+    // S_max = std::max(150, (int)(12.0 * K));
     // S_pool = std::max(100, (int)(12.5 * K));
     // S_min = std::max(75, (int)(10.0 * K));
     // S_max = std::max(150, (int)(15.0 * K));
+
+    S_pool = std::max(100, (int)(10.0 * K));
 
     // std::cout << "S_pool: " << S_pool << "\n";
     // std::cout << "S_min: " << S_min << "\n";
@@ -216,26 +217,561 @@ bool LocalSearch::exchange21() {
     return false;
 }
 
+// -------------------- Exchange 22 (delta version) --------------------
+bool LocalSearch::exchange22() {
+    if (sol->isFeasible()) {
+        return false;
+    }
+
+    int best_delta = 0;
+
+    int b1_best = -1, b2_best = -1;
+    int a_best = -1, b_best = -1;
+    int c_best = -1, d_best = -1;
+
+    for (int b1 : sol->bad_bins) {
+        const auto& bin1 = sol->bins[b1];
+        int sz1 = (int)bin1.size();
+
+        if (sz1 < 2) continue;
+
+        for (int i1 = 0; i1 < sz1; ++i1) {
+            for (int i2 = i1 + 1; i2 < sz1; ++i2) {
+
+                std::vector<int> subset1 = {
+                    sol->bins[b1][i1],
+                    sol->bins[b1][i2]
+                };
+
+                for (int b2 = 0; b2 < (int)sol->bins.size(); ++b2) {
+                    if (b2 == b1) continue;
+
+                    const auto& bin2 = sol->bins[b2];
+                    int sz2 = (int)bin2.size();
+
+                    if (sz2 < 2) continue;
+
+                    for (int j1 = 0; j1 < sz2; ++j1) {
+                        for (int j2 = j1 + 1; j2 < sz2; ++j2) {
+
+                            std::vector<int> subset2 = {
+                                sol->bins[b2][j1],
+                                sol->bins[b2][j2]
+                            };
+
+                            int delta = sol->deltaSwapSubset(
+                                b1, subset1,
+                                b2, subset2,
+                                K1, K2, K3
+                            );
+
+                            if (improvement_type == ImprovementType::FI && delta < 0) {
+                                int a = subset1[0];
+                                int b = subset1[1];
+                                int c = subset2[0];
+                                int d = subset2[1];
+
+                                sol->moveItem(a, b1, b2);
+                                sol->moveItem(b, b1, b2);
+                                sol->moveItem(c, b2, b1);
+                                sol->moveItem(d, b2, b1);
+
+                                sol->removeEmptyBins();
+                                return true;
+                            }
+
+                            if (delta < best_delta) {
+                                best_delta = delta;
+
+                                b1_best = b1;
+                                b2_best = b2;
+
+                                a_best = subset1[0];
+                                b_best = subset1[1];
+                                c_best = subset2[0];
+                                d_best = subset2[1];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (improvement_type == ImprovementType::BI && b1_best != -1) {
+        sol->moveItem(a_best, b1_best, b2_best);
+        sol->moveItem(b_best, b1_best, b2_best);
+        sol->moveItem(c_best, b2_best, b1_best);
+        sol->moveItem(d_best, b2_best, b1_best);
+
+        sol->removeEmptyBins();
+        return true;
+    }
+
+    return false;
+}
+
+// -------------------- Exchange 32 (delta version) --------------------
+bool LocalSearch::exchange32() {
+    if (sol->isFeasible()) {
+        return false;
+    }
+
+    int best_delta = 0;
+
+    int b1_best = -1, b2_best = -1;
+    int a_best = -1, b_best = -1, c_best = -1;
+    int d_best = -1, e_best = -1;
+
+    for (int b1 : sol->bad_bins) {
+        const auto& bin1 = sol->bins[b1];
+        int sz1 = (int)bin1.size();
+
+        if (sz1 < 3) continue;
+
+        for (int i1 = 0; i1 < sz1; ++i1) {
+            for (int i2 = i1 + 1; i2 < sz1; ++i2) {
+                for (int i3 = i2 + 1; i3 < sz1; ++i3) {
+
+                    std::vector<int> subset1 = {
+                        sol->bins[b1][i1],
+                        sol->bins[b1][i2],
+                        sol->bins[b1][i3]
+                    };
+
+                    for (int b2 = 0; b2 < (int)sol->bins.size(); ++b2) {
+                        if (b2 == b1) continue;
+
+                        const auto& bin2 = sol->bins[b2];
+                        int sz2 = (int)bin2.size();
+
+                        if (sz2 < 2) continue;
+
+                        for (int j1 = 0; j1 < sz2; ++j1) {
+                            for (int j2 = j1 + 1; j2 < sz2; ++j2) {
+
+                                std::vector<int> subset2 = {
+                                    sol->bins[b2][j1],
+                                    sol->bins[b2][j2]
+                                };
+
+                                int delta = sol->deltaSwapSubset(
+                                    b1, subset1,
+                                    b2, subset2,
+                                    K1, K2, K3
+                                );
+
+                                if (improvement_type == ImprovementType::FI && delta < 0) {
+                                    int a = subset1[0];
+                                    int b = subset1[1];
+                                    int c = subset1[2];
+                                    int d = subset2[0];
+                                    int e = subset2[1];
+
+                                    sol->moveItem(a, b1, b2);
+                                    sol->moveItem(b, b1, b2);
+                                    sol->moveItem(c, b1, b2);
+                                    sol->moveItem(d, b2, b1);
+                                    sol->moveItem(e, b2, b1);
+
+                                    sol->removeEmptyBins();
+                                    return true;
+                                }
+
+                                if (delta < best_delta) {
+                                    best_delta = delta;
+
+                                    b1_best = b1;
+                                    b2_best = b2;
+
+                                    a_best = subset1[0];
+                                    b_best = subset1[1];
+                                    c_best = subset1[2];
+                                    d_best = subset2[0];
+                                    e_best = subset2[1];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (improvement_type == ImprovementType::BI && b1_best != -1) {
+        sol->moveItem(a_best, b1_best, b2_best);
+        sol->moveItem(b_best, b1_best, b2_best);
+        sol->moveItem(c_best, b1_best, b2_best);
+        sol->moveItem(d_best, b2_best, b1_best);
+        sol->moveItem(e_best, b2_best, b1_best);
+
+        sol->removeEmptyBins();
+        return true;
+    }
+
+    return false;
+}
+
+// -------------------- Best Move for Pair (delta version) --------------------
+bool LocalSearch::bestMoveForPair(int b1, int b2, bool allow_zero_cost) {
+    if (b1 == b2) return false;
+    if (b1 < 0 || b2 < 0) return false;
+    if (b1 >= (int)sol->bins.size() || b2 >= (int)sol->bins.size()) return false;
+
+    enum class MoveType {
+        NONE,
+        RELOCATE_12,
+        RELOCATE_21,
+        SWAP,
+        SWAP21_12,
+        SWAP21_21
+    };
+
+    struct BestMove {
+        MoveType type = MoveType::NONE;
+        int delta = INT_MAX;
+
+        // generic indices / item ids
+        int item = -1;     // for relocate
+        int i = -1, j = -1; // for swap indices
+        int i1 = -1, i2 = -1, j1 = -1; // for 2-vs-1 indices
+
+        // item ids for safe application of 2-vs-1
+        int a = -1, b = -1, c = -1;
+    };
+
+    auto acceptable = [&](int delta) {
+        return (delta < 0) || (allow_zero_cost && delta == 0);
+    };
+
+    BestMove best;
+
+    // -------------------- Relocate b1 -> b2 --------------------
+    for (int item : sol->bins[b1]) {
+        int delta = sol->deltaMove(item, b1, b2, K1, K2, K3);
+        if (!acceptable(delta)) continue;
+
+        if (delta < best.delta) {
+            best.delta = delta;
+            best.type = MoveType::RELOCATE_12;
+            best.item = item;
+        }
+
+        if (improvement_type == ImprovementType::FI) {
+            sol->moveItem(item, b1, b2);
+            sol->removeEmptyBins();
+            return true;
+        }
+    }
+
+    // -------------------- Relocate b2 -> b1 --------------------
+    for (int item : sol->bins[b2]) {
+        int delta = sol->deltaMove(item, b2, b1, K1, K2, K3);
+        if (!acceptable(delta)) continue;
+
+        if (delta < best.delta) {
+            best.delta = delta;
+            best.type = MoveType::RELOCATE_21;
+            best.item = item;
+        }
+
+        if (improvement_type == ImprovementType::FI) {
+            sol->moveItem(item, b2, b1);
+            sol->removeEmptyBins();
+            return true;
+        }
+    }
+
+    // -------------------- Swap --------------------
+    for (int i = 0; i < (int)sol->bins[b1].size(); ++i) {
+        for (int j = 0; j < (int)sol->bins[b2].size(); ++j) {
+            int delta = sol->deltaSwap(b1, i, b2, j, K1, K2, K3);
+            if (!acceptable(delta)) continue;
+
+            if (delta < best.delta) {
+                best.delta = delta;
+                best.type = MoveType::SWAP;
+                best.i = i;
+                best.j = j;
+            }
+
+            if (improvement_type == ImprovementType::FI) {
+                sol->swapItems(b1, i, b2, j);
+                sol->removeEmptyBins();
+                return true;
+            }
+        }
+    }
+
+    // -------------------- 2-vs-1 from b1 -> b2 --------------------
+    if ((int)sol->bins[b1].size() >= 2 && !sol->bins[b2].empty()) {
+        for (int i1 = 0; i1 < (int)sol->bins[b1].size(); ++i1) {
+            for (int i2 = i1 + 1; i2 < (int)sol->bins[b1].size(); ++i2) {
+                for (int j = 0; j < (int)sol->bins[b2].size(); ++j) {
+                    int delta = sol->deltaSwap21(b1, i1, i2, b2, j, K1, K2, K3);
+                    if (!acceptable(delta)) continue;
+
+                    int a = sol->bins[b1][i1];
+                    int b = sol->bins[b1][i2];
+                    int c = sol->bins[b2][j];
+
+                    if (delta < best.delta) {
+                        best.delta = delta;
+                        best.type = MoveType::SWAP21_12;
+                        best.i1 = i1;
+                        best.i2 = i2;
+                        best.j1 = j;
+                        best.a = a;
+                        best.b = b;
+                        best.c = c;
+                    }
+
+                    if (improvement_type == ImprovementType::FI) {
+                        sol->moveItem(a, b1, b2);
+                        sol->moveItem(b, b1, b2);
+                        sol->moveItem(c, b2, b1);
+                        sol->removeEmptyBins();
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------- 2-vs-1 from b2 -> b1 --------------------
+    if ((int)sol->bins[b2].size() >= 2 && !sol->bins[b1].empty()) {
+        for (int i1 = 0; i1 < (int)sol->bins[b2].size(); ++i1) {
+            for (int i2 = i1 + 1; i2 < (int)sol->bins[b2].size(); ++i2) {
+                for (int j = 0; j < (int)sol->bins[b1].size(); ++j) {
+                    int delta = sol->deltaSwap21(b2, i1, i2, b1, j, K1, K2, K3);
+                    if (!acceptable(delta)) continue;
+
+                    int a = sol->bins[b2][i1];
+                    int b = sol->bins[b2][i2];
+                    int c = sol->bins[b1][j];
+
+                    if (delta < best.delta) {
+                        best.delta = delta;
+                        best.type = MoveType::SWAP21_21;
+                        best.i1 = i1;
+                        best.i2 = i2;
+                        best.j1 = j;
+                        best.a = a;
+                        best.b = b;
+                        best.c = c;
+                    }
+
+                    if (improvement_type == ImprovementType::FI) {
+                        sol->moveItem(a, b2, b1);
+                        sol->moveItem(b, b2, b1);
+                        sol->moveItem(c, b1, b2);
+                        sol->removeEmptyBins();
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------- Apply best improvement --------------------
+    if (improvement_type == ImprovementType::BI && best.type != MoveType::NONE) {
+        switch (best.type) {
+            case MoveType::RELOCATE_12:
+                sol->moveItem(best.item, b1, b2);
+                break;
+
+            case MoveType::RELOCATE_21:
+                sol->moveItem(best.item, b2, b1);
+                break;
+
+            case MoveType::SWAP:
+                sol->swapItems(b1, best.i, b2, best.j);
+                break;
+
+            case MoveType::SWAP21_12:
+                sol->moveItem(best.a, b1, b2);
+                sol->moveItem(best.b, b1, b2);
+                sol->moveItem(best.c, b2, b1);
+                break;
+
+            case MoveType::SWAP21_21:
+                sol->moveItem(best.a, b2, b1);
+                sol->moveItem(best.b, b2, b1);
+                sol->moveItem(best.c, b1, b2);
+                break;
+
+            case MoveType::NONE:
+                return false;
+        }
+
+        sol->removeEmptyBins();
+        return true;
+    }
+
+    return false;
+}
+
 // -------------------- One iteration of classic local search only --------------------
+// bool LocalSearch::classic() {
+//     if (sol->isFeasible()) {
+//         return false;
+//     }
+
+//     std::vector<int> order = {0, 1, 2};
+//     std::shuffle(order.begin(), order.end(), rng);
+
+//     bool improved = false;
+
+//     for (int op : order) {
+//         switch (op) {
+//             case 0: improved |= relocation(); break;
+//             case 1: improved |= exchange(); break;
+//             case 2: improved |= exchange21(); break;
+//         }
+//     }
+
+//     return improved;
+// }
+
 bool LocalSearch::classic() {
     if (sol->isFeasible()) {
         return false;
     }
 
+    bool overall_improved = false;
+
     std::vector<int> order = {0, 1, 2};
     std::shuffle(order.begin(), order.end(), rng);
 
-    bool improved = false;
+    while (!sol->isFeasible()) {
+        bool improved_this_loop = false;
 
-    for (int op : order) {
-        switch (op) {
-            case 0: improved |= relocation(); break;
-            case 1: improved |= exchange(); break;
-            case 2: improved |= exchange21(); break;
+        for (int op : order) {
+            bool moved = false;
+
+            switch (op) {
+                case 0:
+                    moved = relocation();
+                    break;
+                case 1:
+                    moved = exchange();
+                    break;
+                case 2:
+                    moved = exchange21();
+                    break;
+            }
+
+            if (moved) {
+                improved_this_loop = true;
+                overall_improved = true;
+            }
+
+            if (sol->isFeasible()) {
+                break;
+            }
+        }
+
+        if (!improved_this_loop) {
+            break;
         }
     }
 
-    return improved;
+    return overall_improved;
+}
+
+bool LocalSearch::classic_ILS() {
+    if (sol->isFeasible()) {
+        return false;
+    }
+
+    auto phi = [&](int b) -> int {
+        int excess = std::max(0, sol->bin_loads[b] - sol->C);
+        return K2 * excess + K3 * sol->bin_conflicts[b];
+    };
+
+    bool overall_improved = false;
+    int it_loop = 0;
+
+    std::vector<int> bin_version(sol->bins.size(), 0);
+    std::vector<std::vector<int>> last_eval_v1(
+        sol->bins.size(), std::vector<int>(sol->bins.size(), -1));
+    std::vector<std::vector<int>> last_eval_v2(
+        sol->bins.size(), std::vector<int>(sol->bins.size(), -1));
+
+    while (true) {
+        ++it_loop;
+        bool allow_zero_cost = (it_loop == 1);
+        bool moved_in_this_loop = false;
+        bool restart_loop = false;
+
+        std::vector<int> bins_order(sol->bins.size());
+        std::iota(bins_order.begin(), bins_order.end(), 0);
+        std::shuffle(bins_order.begin(), bins_order.end(), rng);
+
+        for (int b1 : bins_order) {
+            if (restart_loop) break;
+            if (b1 >= (int)sol->bins.size()) continue;
+            if (phi(b1) <= 0) continue;
+
+            std::vector<int> bins_order_2(sol->bins.size());
+            std::iota(bins_order_2.begin(), bins_order_2.end(), 0);
+            std::shuffle(bins_order_2.begin(), bins_order_2.end(), rng);
+
+            for (int b2 : bins_order_2) {
+                if (b2 == b1) continue;
+                if (b1 >= (int)sol->bins.size() || b2 >= (int)sol->bins.size()) continue;
+
+                bool must_evaluate =
+                    (it_loop == 1) ||
+                    (last_eval_v1[b1][b2] != bin_version[b1]) ||
+                    (last_eval_v2[b1][b2] != bin_version[b2]);
+
+                if (!must_evaluate) continue;
+
+                int old_n_bins = (int)sol->bins.size();
+                bool moved = bestMoveForPair(b1, b2, allow_zero_cost);
+                int new_n_bins = (int)sol->bins.size();
+
+                if (moved) {
+                    overall_improved = true;
+                    moved_in_this_loop = true;
+
+                    if (new_n_bins != old_n_bins) {
+                        // Bin indices may have changed because removeEmptyBins remapped them.
+                        // Rebuild all loop bookkeeping and restart from scratch.
+                        bin_version.assign(sol->bins.size(), 0);
+                        last_eval_v1.assign(
+                            sol->bins.size(),
+                            std::vector<int>(sol->bins.size(), -1));
+                        last_eval_v2.assign(
+                            sol->bins.size(),
+                            std::vector<int>(sol->bins.size(), -1));
+
+                        restart_loop = true;
+                        break;
+                    } else {
+                        // Indices are stable; mark these bins as changed.
+                        ++bin_version[b1];
+                        ++bin_version[b2];
+                    }
+
+                    if (improvement_type == ImprovementType::FI) {
+                        restart_loop = true;
+                        break;
+                    }
+                } else {
+                    last_eval_v1[b1][b2] = bin_version[b1];
+                    last_eval_v2[b1][b2] = bin_version[b2];
+                }
+            }
+        }
+
+        if (!moved_in_this_loop || sol->isFeasible()) {
+            break;
+        }
+    }
+
+    return overall_improved;
 }
 
 // -------------------- Add (delta version) --------------------
@@ -953,9 +1489,20 @@ bool LocalSearch::assignment(int N_ASSIGN) {
     // std::cout << "obj_before: " << obj_before << "\n";
     // std::cout << "obj_after : " << obj_after  << "\n";
 
-    // -------------------- Accept if improving --------------------
-    if (obj_after < obj_before) {
+    // -------------------- Tabu check --------------------
+    size_t candidate_hash = hashSolution(candidate.bins);
+
+    if (isTabu(candidate_hash) && obj_after >= obj_before) {
+        return false;
+    }
+
+    // -------------------- Accept if improving or equal --------------------
+    if (obj_after <= obj_before) {
         *sol = candidate;
+
+        addTabu(candidate_hash);
+        last_solution_hash = candidate_hash;
+
         return true;
     }
 
@@ -1036,313 +1583,36 @@ bool LocalSearch::dualPhaseMove(int N_ASSIGN, int N_ATTEMPTS) {
     return repackingGreedy(N_ATTEMPTS);
 }
 
-// -------------------- Set Covering --------------------
-// bool LocalSearch::setCovering() {
-//     bool verbose = true;
-
-//     auto log = [&](const std::string& msg) {
-//         if (verbose) std::cout << msg << "\n";
-//     };
-
-//     const int TIME_LIMIT_MS = 60000;
-
-//     log("\n[SC] START setCovering()");
-
-//     std::shuffle(pool.begin(), pool.end(), rng);
-
-//     if (pool.empty()) {
-//         log("[SC] FAILED: empty pool");
-//         return false;
-//     }
-
-//     const int n_items = sol->N;
-//     const int n_cols  = (int)pool.size();
-//     int K_upper = K;
-
-//     // ---------------- ADAPTIVE K ----------------
-//     if (sol->isFeasible() && K_upper > 1) {
-//         K_upper -= 1;
-//         log("[SC] MODE: compression (K-1)");
-//     } else {
-//         log("[SC] MODE: repair (K)");
-//     }
-
-//     log("[SC] n_items=" + std::to_string(n_items) +
-//         " n_cols=" + std::to_string(n_cols) +
-//         " K-1=" + std::to_string(K_upper));
-
-//     std::vector<bool> covered(n_items, false);
-
-//     for (int j = 0; j < n_cols; j++) {
-//         for (int i = 0; i < n_items; i++) {
-//             if (pool[j].col.mask[i]) {
-//                 covered[i] = true;
-//             }
-//         }
-//     }
-
-//     for (int i = 0; i < n_items; i++) {
-//         if (!covered[i]) {
-//             std::cout << "[SC ERROR] item " << i << " not coverable!\n";
-//         }
-//     }
-
-//     Highs highs;
-//     HighsLp lp;
-
-//     const int n_rows = n_items + 1;
-
-//     lp.num_col_ = n_cols;
-//     lp.num_row_ = n_rows;
-
-//     // ---------------- VARIABLES ----------------
-//     lp.col_cost_.assign(n_cols, 0.0);
-//     lp.col_lower_.assign(n_cols, 0.0);
-//     lp.col_upper_.assign(n_cols, 1.0);
-//     lp.integrality_.assign(n_cols, HighsVarType::kInteger);
-
-//     for (int j = 0; j < n_cols; j++) {
-//         lp.col_cost_[j] = pool[j].col.cost;
-//     }
-
-//     // ---------------- ROW BOUNDS ----------------
-//     lp.row_lower_.assign(n_rows, 1.0);
-//     lp.row_upper_.assign(n_rows, kHighsInf);
-
-//     lp.row_lower_[n_items] = -kHighsInf;
-//     lp.row_upper_[n_items] = K_upper;
-
-//     // ---------------- MATRIX ----------------
-//     lp.a_matrix_.start_.assign(n_cols + 1, 0);
-//     lp.a_matrix_.index_.clear();
-//     lp.a_matrix_.value_.clear();
-
-//     int nnz = 0;
-
-//     for (int j = 0; j < n_cols; j++) {
-
-//         lp.a_matrix_.start_[j] = nnz;
-
-//         const auto& col = pool[j].col;
-
-//         for (int i = 0; i < n_items; i++) {
-//             if (col.mask[i]) {
-//                 lp.a_matrix_.index_.push_back(i);
-//                 lp.a_matrix_.value_.push_back(1.0);
-//                 nnz++;
-//             }
-//         }
-
-//         // K constraint row
-//         lp.a_matrix_.index_.push_back(n_items);
-//         lp.a_matrix_.value_.push_back(1.0);
-//         nnz++;
-//     }
-
-//     lp.a_matrix_.start_[n_cols] = nnz;
-
-//     log("[SC] nnz=" + std::to_string(nnz));
-
-//     highs.passModel(lp);
-//     highs.setOptionValue("output_flag", false);
-//     highs.setOptionValue("log_to_console", false);
-//     highs.setOptionValue("time_limit", TIME_LIMIT_MS / 1000.0);
-
-//     log("[SC] calling HiGHS...");
-
-//     const HighsStatus status = highs.run();
-
-//     if (status == HighsStatus::kWarning) {
-//         log("[SC] WARNING status (possibly time limit)");
-//     }
-
-//     if (status != HighsStatus::kOk) {
-//         log("[SC] solver error");
-//         return false;
-//     }
-
-//     const HighsModelStatus model_status = highs.getModelStatus();
-
-//     log("[SC] model status=" + std::to_string((int)model_status));
-
-//     switch (model_status) {
-//         case HighsModelStatus::kInfeasible:
-//             log("[SC] infeasible restricted pool");
-//             return false;
-
-//         case HighsModelStatus::kUnbounded:
-//             log("[SC] ERROR: unbounded model");
-//             return false;
-
-//         case HighsModelStatus::kModelEmpty:
-//             log("[SC] ERROR: empty model");
-//             return false;
-
-//         case HighsModelStatus::kLoadError:
-//             log("[SC] ERROR: load error");
-//             return false;
-
-//         case HighsModelStatus::kOptimal:
-//             log("[SC] optimal solution found");
-//             break;
-
-//         case HighsModelStatus::kTimeLimit: {
-//             log("[SC] time limit reached (non-optimal solution)");
-
-//             double gap = highs.getInfo().mip_gap;
-//             log("[SC] MIP gap = " + std::to_string(gap));
-//             break;
-//         }
-
-//         default:
-//             log("[SC] other status: " + std::to_string((int)model_status));
-//             break;
-//     }
-
-//     if (!highs.getSolution().value_valid) {
-//         log("[SC] No feasible solution found within time.");
-//         updatePoolSize(false);
-//         return false;
-//     }
-
-//     const auto& soln = highs.getSolution();
-
-//     std::vector<std::vector<int>> new_bins;
-//     new_bins.reserve(K);
-
-//     for (int j = 0; j < n_cols; j++) {
-//         if (soln.col_value[j] > 0.5) {
-//             new_bins.push_back(pool[j].col.items);
-//         }
-//     }
-
-//     if (new_bins.empty()) {
-//         log("[SC] no solution found");
-//         return false;
-//     }
-
-//     std::vector<std::vector<int>> repaired_bins = repairSolution(new_bins);
-
-//     size_t new_hash = hash_solution(repaired_bins);
-//     size_t old_hash = hash_solution(sol->bins);
-
-//     // ---------------- TABU CHECK ----------------
-//     if (new_hash == old_hash) {
-//         log("[SC] identical solution. Rejecting.");
-//         updatePoolSize(false);
-//         return false;
-//     }
-
-//     if (isTabu(new_hash)) {
-//         log("[SC] TABU solution detected. Rejecting.");
-//         updatePoolSize(false);
-//         return false;
-//     }
-
-//     // ---------------- ACCEPT ----------------
-//     int old_obj = sol->computeObjective(K1, K2, K3);
-
-//     BPPCSolution temp_sol = *sol;
-//     temp_sol.rebuildSolutionFromBins(repaired_bins);
-//     temp_sol.removeEmptyBins();
-
-//     int new_obj = temp_sol.computeObjective(K1, K2, K3);
-
-//     log("[SC] old_obj= " + std::to_string(old_obj));
-//     log("[SC] new_obj= " + std::to_string(new_obj));
-
-//     // Only accept improving solutions
-//     if (new_obj >= old_obj) {
-//         log("[SC] didn't improve objective value solution. Rejecting.");
-//         updatePoolSize(false);
-//         return false;
-//     }
-//     log("[SC] improved objective value solution. Accepting.");
-
-//     // ---------------- APPLY ACCEPTED SOLUTION ----------------
-//     *sol = temp_sol;
-
-//     updatePoolSize(true);
-//     addTabu(new_hash);
-
-//     last_solution_hash = new_hash;
-
-//     log("[SC] SUCCESS");
-
-//     return true;
-// }
-
-bool LocalSearch::setCovering() {
-    bool verbose = false;
-
-    auto log = [&](const std::string& msg) {
-        if (verbose) std::cout << msg << "\n";
-    };
-
-    const int TIME_LIMIT_MS = 60000;
-
-    log("\n[SC] START setCovering()");
-
-    std::shuffle(pool.begin(), pool.end(), rng);
-
-    if (pool.empty()) {
-        log("[SC] FAILED: empty pool");
-        return false;
-    }
-
-    const int n_items = sol->N;
-    const int n_cols  = (int)pool.size();
-    int K_upper = K;
-
-    // ---------------- ADAPTIVE K ----------------
-    if (sol->isFeasible() && K_upper > 1) {
-        K_upper -= 1;
-        log("[SC] MODE: compression (K-1)");
-    } else {
-        log("[SC] MODE: repair (K)");
-    }
-
-    log("[SC] n_items=" + std::to_string(n_items) +
-        " n_cols=" + std::to_string(n_cols) +
-        " K-1=" + std::to_string(K_upper));
-
-    // ---------------- Gurobi model ----------------
+bool LocalSearch::setCoveringLPFeasible(int K_upper) {
     try {
+        const int n_items = sol->N;
+        const int n_cols  = static_cast<int>(pool.size());
 
-        GRBEnv env = GRBEnv(true);
+        if (pool.empty()) return false;
+
+        GRBEnv env(true);
         env.set("OutputFlag", "0");
         env.start();
 
-        GRBModel model = GRBModel(env);
+        GRBModel model(env);
 
-        model.set(GRB_DoubleParam_TimeLimit, TIME_LIMIT_MS / 1000.0);
-        // model.set(GRB_IntParam_Threads, 1);
-        model.set(GRB_IntParam_MIPFocus, 1);
+        model.set(GRB_DoubleParam_TimeLimit, 5.0);
 
-        // ---------------- VARIABLES ----------------
         std::vector<GRBVar> x(n_cols);
-
-        for (int j = 0; j < n_cols; j++) {
-            x[j] = model.addVar(
-                0.0, 1.0,
-                pool[j].col.cost,
-                GRB_BINARY
-            );
+        for (int j = 0; j < n_cols; ++j) {
+            x[j] = model.addVar(0.0, 1.0, 0.0, GRB_CONTINUOUS);
         }
 
-        // ---------------- ROW BOUNDS ----------------
         std::vector<GRBLinExpr> cover_constr(n_items);
         GRBLinExpr k_constr = 0;
 
-        for (int i = 0; i < n_items; i++) {
+        for (int i = 0; i < n_items; ++i)
             cover_constr[i] = 0;
-        }
 
-        for (int j = 0; j < n_cols; j++) {
-
+        for (int j = 0; j < n_cols; ++j) {
             const auto& col = pool[j].col;
 
-            for (int i = 0; i < n_items; i++) {
+            for (int i = 0; i < n_items; ++i) {
                 if (col.mask[i]) {
                     cover_constr[i] += x[j];
                 }
@@ -1351,20 +1621,185 @@ bool LocalSearch::setCovering() {
             k_constr += x[j];
         }
 
-        for (int i = 0; i < n_items; i++) {
+        for (int i = 0; i < n_items; ++i) {
             model.addConstr(cover_constr[i] >= 1);
         }
 
         model.addConstr(k_constr <= K_upper);
 
-        log("[SC] calling Gurobi...");
-
         model.optimize();
 
         int status = model.get(GRB_IntAttr_Status);
 
+        // LP infeasible => MIP infeasible
+        if (status == GRB_INFEASIBLE) {
+            return false;
+        }
+
+        // Otherwise assume feasible (OPTIMAL or TIME_LIMIT etc.)
+        return true;
+
+    } catch (...) {
+        return true; // fail-open (don’t block MIP)
+    }
+}
+
+// -------------------- Set Covering --------------------
+bool LocalSearch::setCoveringVanilla() {
+    bool verbose = false;
+
+    auto log = [&](const std::string& msg) {
+        if (verbose) std::cout << msg << "\n";
+    };
+
+    const int GUROBI_TIME_LIMIT_MS = 30000;
+    const int WATCHDOG_LIMIT_MS    = 35000;
+    const int CHECK_INTERVAL_MS    = 1000;
+
+    log("\n[SC] START setCovering()");
+
+    // std::shuffle(pool.begin(), pool.end(), rng);
+
+    if (pool.empty()) {
+        log("[SC] FAILED: empty pool");
+        return false;
+    }
+
+    const int n_items = sol->N;
+    const int n_cols  = static_cast<int>(pool.size());
+    int K_upper = K;
+
+    if (sol->isFeasible() && K_upper > 1) {
+        K_upper -= 1;
+        log("[SC] MODE: compression (K-1)");
+    } else {
+        log("[SC] MODE: repair (K)");
+    }
+
+    if (!setCoveringLPFeasible(K_upper)) {
+        log("[SC] LP infeasible -> skipping MIP");
+        return false;
+    }
+
+    log("[SC] n_items=" + std::to_string(n_items) +
+        " n_cols=" + std::to_string(n_cols) +
+        " K_upper=" + std::to_string(K_upper));
+
+    try {
+        GRBEnv env(true);
+        env.set("OutputFlag", "0");
+        env.start();
+
+        GRBModel model(env);
+
+        model.set(GRB_DoubleParam_TimeLimit, GUROBI_TIME_LIMIT_MS / 1000.0);
+        model.set(GRB_IntParam_MIPFocus, 1);
+
+        std::vector<GRBVar> x(n_cols);
+        for (int j = 0; j < n_cols; ++j) {
+            x[j] = model.addVar(0.0, 1.0, pool[j].col.cost, GRB_BINARY);
+        }
+
+        std::vector<GRBLinExpr> cover_constr(n_items);
+        GRBLinExpr k_constr = 0;
+
+        for (int i = 0; i < n_items; ++i) {
+            cover_constr[i] = 0;
+        }
+
+        for (int j = 0; j < n_cols; ++j) {
+            const auto& col = pool[j].col;
+
+            for (int i = 0; i < n_items; ++i) {
+                if (col.mask[i]) {
+                    cover_constr[i] += x[j];
+                }
+            }
+
+            k_constr += x[j];
+        }
+
+        for (int i = 0; i < n_items; ++i) {
+            model.addConstr(cover_constr[i] >= 1);
+        }
+
+        model.addConstr(k_constr <= K_upper);
+
+        if (K_upper == K &&
+            !elite_bins.empty() &&
+            elite_bins.size() <= static_cast<size_t>(K_upper)) {
+            int start_count = 0;
+
+            for (int j = 0; j < n_cols; ++j) {
+                if (elite_hashes.count(pool[j].hash)) {
+                    x[j].set(GRB_DoubleAttr_Start, 1.0);
+                    start_count++;
+                } else {
+                    x[j].set(GRB_DoubleAttr_Start, 0.0);
+                }
+            }
+
+            model.set(GRB_IntParam_MIPFocus, 2);
+
+            log("[SC] injected elite MIP start with " + std::to_string(start_count) + " bins");
+        } else {
+            log("[SC] skipped elite MIP start");
+        }
+
+        model.update();
+
+        std::atomic<bool> finished(false);
+
+        std::thread watchdog([&]() {
+            int waited_ms = 0;
+
+            while (waited_ms < WATCHDOG_LIMIT_MS) {
+                if (finished.load()) {
+                    log("[SC] Watchdog exiting normally");
+                    return;
+                }
+
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(CHECK_INTERVAL_MS)
+                );
+                waited_ms += CHECK_INTERVAL_MS;
+            }
+
+            if (!finished.load()) {
+                log("[SC] Watchdog triggered -> terminating Gurobi");
+                try {
+                    model.terminate();
+                } catch (...) {}
+            }
+        });
+
+        log("[SC] calling Gurobi...");
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        model.optimize();
+        auto t1 = std::chrono::high_resolution_clock::now();
+
+        double solve_time = std::chrono::duration<double>(t1 - t0).count();
+        log("[SC] Gurobi solve time = " + std::to_string(solve_time) + " s");
+
+        finished = true;
+
+        if (watchdog.joinable()) {
+            watchdog.join();
+        }
+
+        int status = model.get(GRB_IntAttr_Status);
+
+        if (status == GRB_OPTIMAL) {
+            log("[SC] optimal solution found");
+            updatePoolSize(true);
+        }
+
         if (status == GRB_TIME_LIMIT) {
-            log("[SC] time limit reached (non-optimal solution)");
+            log("[SC] time limit reached");
+            updatePoolSize(false);
+        } else if (status == GRB_INTERRUPTED) {
+            log("[SC] interrupted by watchdog");
         }
 
         if (status == GRB_INFEASIBLE) {
@@ -1377,16 +1812,17 @@ bool LocalSearch::setCovering() {
             return false;
         }
 
-        if (status != GRB_OPTIMAL && status != GRB_TIME_LIMIT) {
+        if (status != GRB_OPTIMAL &&
+            status != GRB_TIME_LIMIT &&
+            status != GRB_INTERRUPTED) {
             log("[SC] solver error");
             return false;
         }
 
-        // ---------------- SOLUTION ----------------
         std::vector<std::vector<int>> new_bins;
         new_bins.reserve(K);
 
-        for (int j = 0; j < n_cols; j++) {
+        for (int j = 0; j < n_cols; ++j) {
             if (x[j].get(GRB_DoubleAttr_X) > 0.5) {
                 new_bins.push_back(pool[j].col.items);
             }
@@ -1399,23 +1835,19 @@ bool LocalSearch::setCovering() {
 
         std::vector<std::vector<int>> repaired_bins = repairSolution(new_bins);
 
-        size_t new_hash = hash_solution(repaired_bins);
-        size_t old_hash = hash_solution(sol->bins);
+        size_t new_hash = hashSolution(repaired_bins);
+        size_t old_hash = hashSolution(sol->bins);
 
-        // ---------------- TABU CHECK ----------------
         if (new_hash == old_hash) {
             log("[SC] identical solution. Rejecting.");
-            updatePoolSize(false);
             return false;
         }
 
         if (isTabu(new_hash)) {
             log("[SC] TABU solution detected. Rejecting.");
-            updatePoolSize(false);
             return false;
         }
 
-        // ---------------- ACCEPT ----------------
         int old_obj = sol->computeObjective(K1, K2, K3);
 
         BPPCSolution temp_sol = *sol;
@@ -1427,27 +1859,244 @@ bool LocalSearch::setCovering() {
         log("[SC] old_obj= " + std::to_string(old_obj));
         log("[SC] new_obj= " + std::to_string(new_obj));
 
-        // Only accept improving solutions
         if (new_obj >= old_obj) {
             log("[SC] didn't improve objective value solution. Rejecting.");
-            updatePoolSize(false);
             return false;
         }
+
         log("[SC] improved objective value solution. Accepting.");
 
-        // ---------------- APPLY ACCEPTED SOLUTION ----------------
         *sol = temp_sol;
-
-        updatePoolSize(true);
+        
         addTabu(new_hash);
-
         last_solution_hash = new_hash;
 
         log("[SC] SUCCESS");
-
         return true;
 
-    } catch (GRBException &e) {
+    } catch (GRBException& e) {
+        log("[SC] Gurobi error: " + std::string(e.getMessage()));
+        return false;
+    } catch (...) {
+        log("[SC] Unknown Gurobi error");
+        return false;
+    }
+}
+
+bool LocalSearch::setCoveringBinFeasible() {
+    bool verbose = false;
+
+    auto log = [&](const std::string& msg) {
+        if (verbose) std::cout << msg << "\n";
+    };
+
+    const int GUROBI_TIME_LIMIT_MS = 30000;
+    const int WATCHDOG_LIMIT_MS    = 35000;
+    const int CHECK_INTERVAL_MS    = 1000;
+
+    log("\n[SC] START setCovering()");
+
+    if (pool.empty()) {
+        log("[SC] FAILED: empty pool");
+        return false;
+    }
+
+    const int n_items = sol->N;
+    const int n_cols  = static_cast<int>(pool.size());
+
+    log("[SC] n_items=" + std::to_string(n_items) +
+        " n_cols=" + std::to_string(n_cols));
+
+    try {
+        GRBEnv env(true);
+        env.set("OutputFlag", "0");
+        env.start();
+
+        GRBModel model(env);
+
+        model.set(GRB_DoubleParam_TimeLimit, GUROBI_TIME_LIMIT_MS / 1000.0);
+
+        std::vector<GRBVar> x(n_cols);
+        for (int j = 0; j < n_cols; ++j) {
+            // Objective = minimize number of selected bins
+            x[j] = model.addVar(0.0, 1.0, 1.0, GRB_BINARY);
+        }
+
+        std::vector<GRBLinExpr> cover_constr(n_items);
+        GRBLinExpr k_constr = 0;
+
+        for (int i = 0; i < n_items; ++i) {
+            cover_constr[i] = 0;
+        }
+
+        for (int j = 0; j < n_cols; ++j) {
+            const auto& col = pool[j].col;
+
+            for (int i = 0; i < n_items; ++i) {
+                if (col.mask[i]) {
+                    cover_constr[i] += x[j];
+                }
+            }
+
+            k_constr += x[j];
+        }
+
+        // Cover all items
+        for (int i = 0; i < n_items; ++i) {
+            model.addConstr(cover_constr[i] >= 1);
+        }
+
+        // MIP start from elite solution if available and compatible
+        if (!elite_bins.empty()) {
+
+            int start_count = 0;
+            for (int j = 0; j < n_cols; ++j) {
+                if (elite_hashes.count(pool[j].hash)) {
+                    x[j].set(GRB_DoubleAttr_Start, 1.0);
+                    start_count++;
+                } else {
+                    x[j].set(GRB_DoubleAttr_Start, 0.0);
+                }
+            }
+
+            // Since we already have a start, focus more on improvement
+            model.set(GRB_IntParam_MIPFocus, 2);
+
+            log("[SC] injected elite MIP start with " +
+                std::to_string(start_count) + " bins");
+        }
+
+        model.update();
+
+        std::atomic<bool> finished(false);
+
+        std::thread watchdog([&]() {
+            int waited_ms = 0;
+
+            while (waited_ms < WATCHDOG_LIMIT_MS) {
+                if (finished.load()) {
+                    log("[SC] Watchdog exiting normally");
+                    return;
+                }
+
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(CHECK_INTERVAL_MS)
+                );
+                waited_ms += CHECK_INTERVAL_MS;
+            }
+
+            if (!finished.load()) {
+                log("[SC] Watchdog triggered -> terminating Gurobi");
+                try {
+                    model.terminate();
+                } catch (...) {}
+            }
+        });
+
+        log("[SC] calling Gurobi...");
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        model.optimize();
+        auto t1 = std::chrono::high_resolution_clock::now();
+
+        double solve_time = std::chrono::duration<double>(t1 - t0).count();
+        log("[SC] Gurobi solve time = " + std::to_string(solve_time) + " s");
+
+        finished = true;
+
+        if (watchdog.joinable()) {
+            watchdog.join();
+        }
+
+        int status = model.get(GRB_IntAttr_Status);
+
+        if (status == GRB_OPTIMAL) {
+            log("[SC] optimal solution found");
+            updatePoolSize(true);
+        }
+
+        if (status == GRB_TIME_LIMIT) {
+            log("[SC] time limit reached");
+            updatePoolSize(false);
+        } else if (status == GRB_INTERRUPTED) {
+            log("[SC] interrupted by watchdog");
+        }
+
+        if (status == GRB_INFEASIBLE) {
+            log("[SC] infeasible restricted pool");
+            return false;
+        }
+
+        if (model.get(GRB_IntAttr_SolCount) == 0) {
+            log("[SC] no feasible solution found");
+            return false;
+        }
+
+        if (status != GRB_OPTIMAL &&
+            status != GRB_TIME_LIMIT &&
+            status != GRB_INTERRUPTED) {
+            log("[SC] solver error");
+            return false;
+        }
+
+        // Extract selected bins
+        std::vector<std::vector<int>> new_bins;
+        new_bins.reserve(K);
+
+        for (int j = 0; j < n_cols; ++j) {
+            if (x[j].get(GRB_DoubleAttr_X) > 0.5) {
+                new_bins.push_back(pool[j].col.items);
+            }
+        }
+
+        if (new_bins.empty()) {
+            log("[SC] no solution found");
+            return false;
+        }
+
+        // Postprocess duplicates
+        std::vector<std::vector<int>> repaired_bins = repairSolution(new_bins);
+
+        size_t new_hash = hashSolution(repaired_bins);
+        size_t old_hash = hashSolution(sol->bins);
+
+        if (new_hash == old_hash) {
+            log("[SC] identical solution. Rejecting.");
+            return false;
+        }
+
+        if (isTabu(new_hash)) {
+            log("[SC] TABU solution detected. Rejecting.");
+            return false;
+        }
+
+        int old_obj = sol->computeObjective(K1, K2, K3);
+
+        BPPCSolution temp_sol = *sol;
+        temp_sol.rebuildSolutionFromBins(repaired_bins);
+        temp_sol.removeEmptyBins();
+
+        int new_obj = temp_sol.computeObjective(K1, K2, K3);
+
+        log("[SC] old_obj= " + std::to_string(old_obj));
+        log("[SC] new_obj= " + std::to_string(new_obj));
+
+        if (new_obj >= old_obj) {
+            log("[SC] didn't improve objective value solution. Rejecting.");
+            return false;
+        }
+
+        log("[SC] improved objective value solution. Accepting.");
+
+        *sol = temp_sol;
+        
+        addTabu(new_hash);
+        last_solution_hash = new_hash;
+
+        log("[SC] SUCCESS");
+        return true;
+
+    } catch (GRBException& e) {
         log("[SC] Gurobi error: " + std::string(e.getMessage()));
         return false;
     } catch (...) {
@@ -1460,20 +2109,17 @@ void LocalSearch::updateK() {
     if (K > sol->bins_used && sol->isFeasible()) K = sol->bins_used;
 }
 
-void LocalSearch::updateElite(const BPPCSolution& candidate) {
+void LocalSearch::updateElite() {
+    if (K > sol->bins_used && sol->isFeasible()) {
+        elite_bins = sol->bins;
 
-    if (candidate.computeObjective(K1, K2, K3) >= best_obj) return;
+        elite_hashes.clear();
+        for (const auto& bin : elite_bins) {
+            elite_hashes.insert(hashBin(bin));
+        }
 
-    sol->bins = candidate.bins;
-
-    elite_bins = candidate.bins;
-
-    elite_hashes.clear();
-    for (const auto& bin : elite_bins) {
-        elite_hashes.insert(hash_bin(bin));
+        elite_solution_hash = hashSolution(elite_bins);
     }
-
-    elite_solution_hash = hash_solution(elite_bins);
 }
 
 void LocalSearch::updatePool() {
@@ -1502,23 +2148,161 @@ void LocalSearch::updatePool() {
     trimPool();
 }
 
-void LocalSearch::addToPool(const BPPCSolution& s) {
+// -------------------- Add Column: Allow Infeasible --------------------
+inline void LocalSearch::addColumnAllowInfeasible(Column&& col, int n_items) {
+    auto isSubset = [](const Column& a, const Column& b) {
+        for (size_t i = 0; i < a.mask.size(); ++i) {
+            if (a.mask[i] && !b.mask[i]) return false;
+        }
+        return true;
+    };
 
+    auto isEqualMask = [](const Column& a, const Column& b) {
+        return a.mask == b.mask;
+    };
+
+    auto isFeasibleCol = [&](const Column& c) {
+        return c.cost == K1;
+    };
+
+    col.buildMask(n_items);
+    size_t h = hashBin(col.items);
+
+    // Exact duplicate
+    if (seen.count(h)) return;
+
+    // If new column is a subset of an existing one:
+    // - normally reject it
+    // - but if it is currently elite and the existing superset is feasible,
+    //   replace the elite reference by the superset
+    for (const auto& entry : pool) {
+        if (isSubset(col, entry.col)) {
+            bool new_is_elite = elite_hashes.count(h);
+            bool existing_is_feasible = isFeasibleCol(entry.col);
+            bool existing_already_elite = elite_hashes.count(entry.hash);
+
+            if (new_is_elite && existing_is_feasible && !existing_already_elite) {
+                // Replace elite bin/hash h by entry.hash
+                for (auto& elite_bin : elite_bins) {
+                    if (hashBin(elite_bin) == h) {
+                        elite_hashes.erase(h);
+                        elite_bin = entry.col.items;
+                        elite_hashes.insert(entry.hash);
+                        elite_solution_hash = hashSolution(elite_bins);
+                        break;
+                    }
+                }
+            }
+            return;
+        }
+    }
+
+    // Remove existing non-elite columns that are strict subsets of the new one
+    for (auto it = pool.begin(); it != pool.end(); ) {
+        bool old_subset_of_new = isSubset(it->col, col);
+        bool equal_masks = isEqualMask(it->col, col);
+
+        if (old_subset_of_new && !equal_masks && !elite_hashes.count(it->hash)) {
+            seen.erase(it->hash);
+            it = pool.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    PoolEntry entry;
+    entry.col = std::move(col);
+    entry.hash = h;
+
+    pool.push_back(std::move(entry));
+    seen.insert(h);
+}
+
+// -------------------- Add Column: Only Feasible --------------------
+inline void LocalSearch::addColumn(Column&& col, int n_items) {
+    auto isSubset = [](const Column& a, const Column& b) {
+        for (size_t i = 0; i < a.mask.size(); ++i) {
+            if (a.mask[i] && !b.mask[i]) return false;
+        }
+        return true;
+    };
+
+    auto isEqualMask = [](const Column& a, const Column& b) {
+        return a.mask == b.mask;
+    };
+
+    auto isFeasibleCol = [&](const Column& c) {
+        return c.cost == K1;
+    };
+
+    col.buildMask(n_items);
+    size_t h = hashBin(col.items);
+
+    // Only keep feasible columns
+    if (!isFeasibleCol(col)) return;
+
+    // Exact duplicate
+    if (seen.count(h)) return;
+
+    // If new feasible column is a subset of an existing one:
+    // - normally reject it
+    // - but if it is currently elite and the existing superset is feasible,
+    //   replace the elite reference by the superset
+    for (const auto& entry : pool) {
+        if (isSubset(col, entry.col)) {
+            bool new_is_elite = elite_hashes.count(h);
+            bool existing_is_feasible = isFeasibleCol(entry.col);
+            bool existing_already_elite = elite_hashes.count(entry.hash);
+
+            if (new_is_elite && existing_is_feasible && !existing_already_elite) {
+                // Replace elite bin/hash h by entry.hash
+                for (auto& elite_bin : elite_bins) {
+                    if (hashBin(elite_bin) == h) {
+                        elite_hashes.erase(h);
+                        elite_bin = entry.col.items;
+                        elite_hashes.insert(entry.hash);
+                        elite_solution_hash = hashSolution(elite_bins);
+                        break;
+                    }
+                }
+            }
+            return;
+        }
+    }
+
+    // Remove existing non-elite columns that are strict subsets of the new one
+    for (auto it = pool.begin(); it != pool.end(); ) {
+        bool old_subset_of_new = isSubset(it->col, col);
+        bool equal_masks = isEqualMask(it->col, col);
+
+        if (old_subset_of_new && !equal_masks && !elite_hashes.count(it->hash)) {
+            seen.erase(it->hash);
+            it = pool.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    PoolEntry entry;
+    entry.col = std::move(col);
+    entry.hash = h;
+
+    pool.push_back(std::move(entry));
+    seen.insert(h);
+}
+
+void LocalSearch::addToPool(const BPPCSolution& s) {
     const int n_items = s.N;
 
-    // ---- Extract columns from solution s ----
     for (int b = 0; b < (int)s.bins.size(); b++) {
-
         const auto& bin = s.bins[b];
         if (bin.empty()) continue;
 
         Column col;
         col.items = bin;
-        col.buildMask(n_items);
 
         int load = s.bin_loads[b];
         int conflicts = s.bin_conflicts[b];
-
         int excess = std::max(0, load - s.C);
 
         col.cost = K1 + K2 * excess + K3 * conflicts;
@@ -1529,67 +2313,46 @@ void LocalSearch::addToPool(const BPPCSolution& s) {
     trimPool();
 }
 
-double LocalSearch::jaccard(const std::vector<int>& a,
-                             const std::vector<int>& b) const
-{
-    int inter = 0;
+void LocalSearch::trimPool() {
+    if ((int)pool.size() <= S_pool) return;
 
-    for (int i : a) {
-        for (int j : b) {
-            if (i == j) {
-                inter++;
-                break;
-            }
+    // -------------------- First remove infeasible non-elite columns --------------------
+    auto it = pool.begin();
+    while ((int)pool.size() > S_pool && it != pool.end()) {
+        bool is_feasible_bin = (it->col.cost == K1);
+
+        if (!is_feasible_bin && !elite_hashes.count(it->hash)) {
+            seen.erase(it->hash);
+            it = pool.erase(it);
+        } else {
+            ++it;
         }
     }
 
-    int uni = a.size() + b.size() - inter;
+    if ((int)pool.size() <= S_pool) return;
 
-    return (uni == 0) ? 0.0 : (double)inter / uni;
+    // -------------------- Then trim oldest non-elite columns --------------------
+    it = pool.begin();
+    while ((int)pool.size() > S_pool && it != pool.end()) {
+        if (!elite_hashes.count(it->hash)) {
+            seen.erase(it->hash);
+            it = pool.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
-void LocalSearch::trimPool() {
+void LocalSearch::updatePoolSize(bool optimal_solved) {
 
-    if (pool.size() <= S_pool) return;
-
-    while ((int)pool.size() > S_pool) {
-
-        auto worst_it = pool.end();
-        double worst_score = std::numeric_limits<double>::infinity();
-
-        for (auto it = pool.begin(); it != pool.end(); ++it) {
-
-            const auto& col = it->col;
-            size_t h = it->hash;
-
-            // Never remove elite bins
-            if (elite_hashes.count(h)) {
-                continue;
-            }
-
-            // Compute best Jaccard vs any elite bin
-            double best_j = 0.0;
-
-            for (const auto& ebin : elite_bins) {
-                double j = jaccard(col.items, ebin);
-                if (j > best_j) best_j = j;
-            }
-
-            // Small aging tie-break (optional)
-            double score = best_j - std::distance(pool.begin(), it) * 1e-9;
-
-            // Remove worst columns
-            if (score < worst_score) {
-                worst_score = score;
-                worst_it = it;
-            }
-        }
-
-        if (worst_it == pool.end()) break;
-
-        seen.erase(worst_it->hash);
-        pool.erase(worst_it);
+    if (optimal_solved) {
+        S_pool = (int)(S_pool * 1.15);
+    } else {
+        S_pool = (int)(S_pool * 0.85);
     }
+
+    // S_pool = std::max(S_pool, S_min);
+    // S_pool = std::min(S_pool, S_max);
 }
 
 // -------------------- Objective --------------------
@@ -1597,7 +2360,7 @@ int LocalSearch::computeObjective(const BPPCSolution& s) const {
     return s.computeObjective(K1, K2, K3);
 }
 
-inline size_t LocalSearch::hash_bin(const std::vector<int>& bin) const {
+inline size_t LocalSearch::hashBin(const std::vector<int>& bin) const {
     static constexpr uint64_t FNV = 1469598103934665603ULL;
     static constexpr uint64_t PRIME = 1099511628211ULL;
 
@@ -1622,7 +2385,7 @@ inline size_t LocalSearch::hash_bin(const std::vector<int>& bin) const {
     return h;
 }
 
-inline size_t LocalSearch::hash_solution(const std::vector<std::vector<int>>& bins) const {
+inline size_t LocalSearch::hashSolution(const std::vector<std::vector<int>>& bins) const {
     static constexpr uint64_t FNV = 1469598103934665603ULL;
     static constexpr uint64_t PRIME = 1099511628211ULL;
 
@@ -1631,7 +2394,7 @@ inline size_t LocalSearch::hash_solution(const std::vector<std::vector<int>>& bi
 
     for (const auto& bin : bins)
     {
-        bin_hashes.push_back(hash_bin(bin));
+        bin_hashes.push_back(hashBin(bin));
     }
 
     // canonical order
@@ -1655,41 +2418,6 @@ inline size_t LocalSearch::hash_solution(const std::vector<std::vector<int>>& bi
     return h;
 }
 
-size_t LocalSearch::hash_pool() const {
-    size_t h = 1469598103934665603ULL;
-
-    for (const auto& e : pool) {
-        for (int x : e.col.items) {
-            h ^= (size_t)x + 0x9e3779b97f4a7c15ULL;
-            h *= 1099511628211ULL;
-        }
-
-        h ^= (size_t)e.col.cost;
-        h *= 1099511628211ULL;
-    }
-
-    return h;
-}
-
-inline void LocalSearch::addColumn(Column&& col, int n_items)
-{
-    if ((int)col.mask.size() != n_items) {
-        col.buildMask(n_items);
-    }
-
-    size_t h = hash_bin(col.items);
-
-    if (seen.find(h) != seen.end())
-        return;
-
-    seen.insert(h);
-
-    pool.emplace_back(PoolEntry{
-        .col = std::move(col),
-        .hash = h
-    });
-}
-
 bool LocalSearch::isTabu(size_t h) {
     return tabu_solutions.find(h) != tabu_solutions.end();
 }
@@ -1705,96 +2433,251 @@ void LocalSearch::addTabu(size_t h) {
     }
 }
 
-void LocalSearch::updatePoolSize(bool optimal_solved) {
+// std::vector<std::vector<int>> LocalSearch::repairSolution(
+//     const std::vector<std::vector<int>>& input_bins) {
+//     std::vector<std::vector<int>> bins = input_bins;
 
-    if (optimal_solved) {
-        S_pool = (int)(S_pool * 1.15);
-    } else {
-        S_pool = (int)(S_pool * 0.85);
-    }
+//     const int n_items = sol->N;
 
-    S_pool = std::max(S_pool, S_min);
-    S_pool = std::min(S_pool, S_max);
-}
+//     // Build item to bins structure
+//     std::vector<std::vector<int>> item_bins(n_items);
+
+//     for (int b = 0; b < (int)bins.size(); b++) {
+//         for (int item : bins[b]) {
+//             item_bins[item].push_back(b);
+//         }
+//     }
+
+//     // Extract duplicated items only
+//     std::vector<int> dup_items;
+//     for (int i = 0; i < n_items; i++) {
+//         if (item_bins[i].size() > 1) {
+//             dup_items.push_back(i);
+//         }
+//     }
+
+//     // Best solution tracking
+//     std::vector<std::vector<int>> best_bins;
+//     int best_cost = std::numeric_limits<int>::max();
+
+//     // DFS recursion
+//     std::function<void(int)> dfs = [&](int idx)
+//     {
+//         // Leaf: all duplicates resolved
+//         if (idx == (int)dup_items.size()) {
+
+//             int cost = 0;
+//             for (auto& b : bins)
+//                 if (!b.empty()) cost++;
+
+//             if (cost < best_cost) {
+//                 best_cost = cost;
+//                 best_bins = bins;
+//             }
+
+//             return;
+//         }
+
+//         int item = dup_items[idx];
+//         const auto& cand_bins = item_bins[item];
+
+//         // Try each bin as "keep bin"
+//         for (int keep_bin : cand_bins) {
+
+//             // Store removed positions for rollback
+//             std::vector<std::pair<int, int>> removed;
+
+//             // Remove item from all other bins
+//             for (int b : cand_bins) {
+//                 if (b == keep_bin) continue;
+
+//                 auto& bin = bins[b];
+
+//                 auto it = std::find(bin.begin(), bin.end(), item);
+//                 if (it != bin.end()) {
+//                     bin.erase(it);
+//                     removed.push_back({b, item});
+//                 }
+//             }
+
+//             dfs(idx + 1);
+
+//             // Rollback
+//             for (auto& [b, val] : removed) {
+//                 bins[b].push_back(val);
+//             }
+//         }
+//     };
+
+//     // Run DP/DFS
+//     dfs(0);
+
+//     return best_bins;
+// }
 
 std::vector<std::vector<int>> LocalSearch::repairSolution(
     const std::vector<std::vector<int>>& input_bins) {
-    std::vector<std::vector<int>> bins = input_bins;
 
     const int n_items = sol->N;
+    const int n_bins  = (int)input_bins.size();
 
-    // Build item to bins structure
+    if (n_bins == 0) return input_bins;
+
+    // ---------------- Build item -> bins ----------------
     std::vector<std::vector<int>> item_bins(n_items);
+    std::vector<int> bin_size(n_bins, 0);
 
-    for (int b = 0; b < (int)bins.size(); b++) {
-        for (int item : bins[b]) {
+    for (int b = 0; b < n_bins; b++) {
+        bin_size[b] = (int)input_bins[b].size();
+        for (int item : input_bins[b]) {
             item_bins[item].push_back(b);
         }
     }
 
-    // Extract duplicated items only
+    // ---------------- Duplicated items only ----------------
     std::vector<int> dup_items;
+    dup_items.reserve(n_items);
+
     for (int i = 0; i < n_items; i++) {
-        if (item_bins[i].size() > 1) {
+        if ((int)item_bins[i].size() > 1) {
             dup_items.push_back(i);
         }
     }
 
-    // Best solution tracking
-    std::vector<std::vector<int>> best_bins;
+    if (dup_items.empty()) {
+        return input_bins;
+    }
+
+    // Most constrained first
+    std::sort(dup_items.begin(), dup_items.end(),
+              [&](int a, int b) {
+                  return item_bins[a].size() < item_bins[b].size();
+              });
+
+    const int D = (int)dup_items.size();
+
+    // For each bin: how many unresolved duplicated items are currently in it
+    std::vector<int> dup_count_in_bin(n_bins, 0);
+    for (int item : dup_items) {
+        for (int b : item_bins[item]) {
+            dup_count_in_bin[b]++;
+        }
+    }
+
+    // Chosen keep-bin for each duplicated item
+    std::vector<int> chosen_bin(D, -1);
+    std::vector<int> best_choice(D, -1);
+
     int best_cost = std::numeric_limits<int>::max();
 
-    // DFS recursion
-    std::function<void(int)> dfs = [&](int idx)
-    {
-        // Leaf: all duplicates resolved
-        if (idx == (int)dup_items.size()) {
+    auto count_nonempty = [&](const std::vector<int>& sz) {
+        int cnt = 0;
+        for (int x : sz) {
+            if (x > 0) cnt++;
+        }
+        return cnt;
+    };
 
-            int cost = 0;
-            for (auto& b : bins)
-                if (!b.empty()) cost++;
+    // Exact lower bound:
+    // a nonempty bin can still become empty only if all remaining items in it
+    // are unresolved duplicated items.
+    auto lower_bound_cost = [&](const std::vector<int>& cur_bin_size,
+                                const std::vector<int>& cur_dup_count_in_bin) {
+        int nonempty = 0;
+        int maybe_emptyable = 0;
 
+        for (int b = 0; b < n_bins; b++) {
+            if (cur_bin_size[b] > 0) {
+                nonempty++;
+                if (cur_bin_size[b] == cur_dup_count_in_bin[b]) {
+                    maybe_emptyable++;
+                }
+            }
+        }
+
+        return nonempty - maybe_emptyable;
+    };
+
+    std::function<void(int, std::vector<int>&, std::vector<int>&)> dfs =
+        [&](int idx, std::vector<int>& cur_bin_size, std::vector<int>& cur_dup_count_in_bin) {
+
+        int lb = lower_bound_cost(cur_bin_size, cur_dup_count_in_bin);
+        if (lb >= best_cost) return;
+
+        if (idx == D) {
+            int cost = count_nonempty(cur_bin_size);
             if (cost < best_cost) {
                 best_cost = cost;
-                best_bins = bins;
+                best_choice = chosen_bin;
             }
-
             return;
         }
 
         int item = dup_items[idx];
         const auto& cand_bins = item_bins[item];
 
-        // Try each bin as "keep bin"
-        for (int keep_bin : cand_bins) {
+        // Try bins that look more promising first:
+        // prefer keeping the item in bins that currently have more items
+        std::vector<int> ordered = cand_bins;
+        std::sort(ordered.begin(), ordered.end(),
+                  [&](int a, int b) {
+                      return cur_bin_size[a] > cur_bin_size[b];
+                  });
 
-            // Store removed positions for rollback
-            std::vector<std::pair<int, int>> removed;
+        for (int keep_bin : ordered) {
+            chosen_bin[idx] = keep_bin;
 
-            // Remove item from all other bins
+            // Remove this duplicated item from all other bins that contain it
             for (int b : cand_bins) {
-                if (b == keep_bin) continue;
-
-                auto& bin = bins[b];
-
-                auto it = std::find(bin.begin(), bin.end(), item);
-                if (it != bin.end()) {
-                    bin.erase(it);
-                    removed.push_back({b, item});
+                if (b != keep_bin) {
+                    cur_bin_size[b]--;
                 }
             }
 
-            dfs(idx + 1);
+            // This duplicated item is no longer unresolved in any candidate bin
+            for (int b : cand_bins) {
+                cur_dup_count_in_bin[b]--;
+            }
+
+            dfs(idx + 1, cur_bin_size, cur_dup_count_in_bin);
 
             // Rollback
-            for (auto& [b, val] : removed) {
-                bins[b].push_back(val);
+            for (int b : cand_bins) {
+                cur_dup_count_in_bin[b]++;
             }
+
+            for (int b : cand_bins) {
+                if (b != keep_bin) {
+                    cur_bin_size[b]++;
+                }
+            }
+
+            chosen_bin[idx] = -1;
         }
     };
 
-    // Run DP/DFS
-    dfs(0);
+    std::vector<int> cur_bin_size = bin_size;
+    std::vector<int> cur_dup_count = dup_count_in_bin;
+
+    dfs(0, cur_bin_size, cur_dup_count);
+
+    // ---------------- Reconstruct best bins ----------------
+    std::vector<std::vector<int>> best_bins = input_bins;
+
+    for (int k = 0; k < D; k++) {
+        int item = dup_items[k];
+        int keep_bin = best_choice[k];
+
+        for (int b : item_bins[item]) {
+            if (b == keep_bin) continue;
+
+            auto& bin = best_bins[b];
+            auto it = std::find(bin.begin(), bin.end(), item);
+            if (it != bin.end()) {
+                bin.erase(it);
+            }
+        }
+    }
 
     return best_bins;
 }
@@ -1925,271 +2808,978 @@ bool LocalSearch::kempeChain() {
     return improved_global;
 }
 
+bool LocalSearch::ejectionChain() {
+    if (!sol || sol->bins.size() <= 1) return false;
+
+    enum class NodeType { SOURCE, ITEM, ZERO };
+
+    struct Pred {
+        bool has_pred = false;
+        NodeType type = NodeType::SOURCE;
+        int id = -1;
+    };
+
+    struct NodeRef {
+        NodeType type;
+        int id;
+    };
+
+    struct Chain {
+        double cost = 0.0;
+        int zero_bin = -1;
+        std::vector<NodeRef> path;   // source omitted, ends in ZERO
+        std::unordered_set<int> items_used;
+        std::unordered_set<int> bins_used;
+    };
+
+    const int n_bins = static_cast<int>(sol->bins.size());
+    const int n_items = sol->N;
+    const double INF = 1e18;
+
+    auto penalty = [&](int load, int conflicts) -> int {
+        int excess = std::max(0, load - sol->C);
+        return K1 + K2 * excess + K3 * conflicts;
+    };
+
+    auto removalCost = [&](int item) -> int {
+        int b = sol->item_bin[item];
+        if (b < 0) return 0;
+
+        int old_pen = penalty(sol->bin_loads[b], sol->bin_conflicts[b]);
+
+        int new_load = sol->bin_loads[b] - sol->weights[item];
+        int new_conf = sol->bin_conflicts[b] - sol->itemConflicts(item, b);
+        int new_pen = penalty(new_load, new_conf);
+
+        return new_pen - old_pen;
+    };
+
+    auto insertionCost = [&](int item, int bin) -> int {
+        int old_pen = penalty(sol->bin_loads[bin], sol->bin_conflicts[bin]);
+
+        int new_load = sol->bin_loads[bin] + sol->weights[item];
+        int new_conf = sol->bin_conflicts[bin] + sol->itemConflicts(item, bin);
+        int new_pen = penalty(new_load, new_conf);
+
+        return new_pen - old_pen;
+    };
+
+    auto replacementCost = [&](int in_item, int out_item) -> int {
+        int b = sol->item_bin[out_item];
+        if (b < 0) return 0;
+
+        int old_pen = penalty(sol->bin_loads[b], sol->bin_conflicts[b]);
+
+        int conf_out = sol->itemConflicts(out_item, b);
+        int conf_in = sol->itemConflicts(in_item, b);
+
+        if (sol->hasConflict(in_item, out_item)) {
+            conf_in -= 1;
+        }
+
+        int new_load = sol->bin_loads[b] - sol->weights[out_item] + sol->weights[in_item];
+        int new_conf = sol->bin_conflicts[b] - conf_out + conf_in;
+        int new_pen = penalty(new_load, new_conf);
+
+        return new_pen - old_pen;
+    };
+
+    // -------------------- Random order Pi --------------------
+    std::vector<int> pi(n_bins);
+    std::iota(pi.begin(), pi.end(), 0);
+    std::shuffle(pi.begin(), pi.end(), rng);
+
+    std::vector<int> rank(n_bins, -1);
+    for (int pos = 0; pos < n_bins; ++pos) {
+        rank[pi[pos]] = pos;
+    }
+
+    std::vector<std::vector<int>> items_at_pos(n_bins);
+    for (int item = 0; item < n_items; ++item) {
+        int b = sol->item_bin[item];
+        if (b >= 0) {
+            items_at_pos[rank[b]].push_back(item);
+        }
+    }
+
+    // -------------------- Shortest paths in DAG --------------------
+    std::vector<double> dist_item(n_items, INF);
+    std::vector<double> dist_zero(n_bins, INF);
+    std::vector<Pred> pred_item(n_items);
+    std::vector<Pred> pred_zero(n_bins);
+
+    for (int item = 0; item < n_items; ++item) {
+        dist_item[item] = removalCost(item);
+        pred_item[item] = {true, NodeType::SOURCE, -1};
+    }
+
+    for (int pos = 0; pos < n_bins; ++pos) {
+        int bin_from = pi[pos];
+
+        std::vector<NodeRef> frontier;
+
+        for (int item : items_at_pos[pos]) {
+            if (dist_item[item] < INF) {
+                frontier.push_back({NodeType::ITEM, item});
+            }
+        }
+
+        if (dist_zero[bin_from] < INF) {
+            frontier.push_back({NodeType::ZERO, bin_from});
+        }
+
+        if (frontier.empty()) continue;
+
+        for (const NodeRef& u : frontier) {
+            double du = (u.type == NodeType::ITEM ? dist_item[u.id] : dist_zero[u.id]);
+
+            for (int next_pos = pos + 1; next_pos < n_bins; ++next_pos) {
+                int bin_to = pi[next_pos];
+
+                // to item nodes
+                for (int out_item : items_at_pos[next_pos]) {
+                    double arc = 0.0;
+
+                    if (u.type == NodeType::ITEM) {
+                        arc = replacementCost(u.id, out_item);
+                    } else {
+                        arc = removalCost(out_item);
+                    }
+
+                    if (du + arc < dist_item[out_item]) {
+                        dist_item[out_item] = du + arc;
+                        pred_item[out_item] = {true, u.type, u.id};
+                    }
+                }
+
+                // to zero node
+                if (u.type == NodeType::ITEM) {
+                    double arc = insertionCost(u.id, bin_to);
+                    if (du + arc < dist_zero[bin_to]) {
+                        dist_zero[bin_to] = du + arc;
+                        pred_zero[bin_to] = {true, NodeType::ITEM, u.id};
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------- Reconstruct all negative zero-node paths --------------------
+    std::vector<Chain> candidate_chains;
+
+    for (int zb = 0; zb < n_bins; ++zb) {
+        if (dist_zero[zb] >= -1e-9) continue;
+
+        std::vector<NodeRef> rev_path;
+        NodeRef cur{NodeType::ZERO, zb};
+
+        while (true) {
+            rev_path.push_back(cur);
+
+            if (cur.type == NodeType::ZERO) {
+                Pred p = pred_zero[cur.id];
+                if (!p.has_pred || p.type == NodeType::SOURCE) break;
+                cur = {p.type, p.id};
+            } else {
+                Pred p = pred_item[cur.id];
+                if (!p.has_pred || p.type == NodeType::SOURCE) break;
+                cur = {p.type, p.id};
+            }
+        }
+
+        std::reverse(rev_path.begin(), rev_path.end());
+
+        Chain ch;
+        ch.cost = dist_zero[zb];
+        ch.zero_bin = zb;
+        ch.path = rev_path;
+
+        for (const NodeRef& node : rev_path) {
+            if (node.type == NodeType::ITEM) {
+                ch.items_used.insert(node.id);
+                int b = sol->item_bin[node.id];
+                if (b >= 0) ch.bins_used.insert(b);
+            } else if (node.type == NodeType::ZERO) {
+                ch.bins_used.insert(node.id);
+            }
+        }
+
+        candidate_chains.push_back(std::move(ch));
+    }
+
+    if (candidate_chains.empty()) {
+        return false;
+    }
+
+    std::sort(candidate_chains.begin(), candidate_chains.end(),
+              [](const Chain& a, const Chain& b) {
+                  return a.cost < b.cost;
+              });
+
+    // -------------------- Select disjoint chains greedily --------------------
+    std::vector<Chain> selected;
+    std::unordered_set<int> used_items;
+    std::unordered_set<int> used_bins;
+
+    for (const Chain& ch : candidate_chains) {
+        bool disjoint = true;
+
+        for (int item : ch.items_used) {
+            if (used_items.count(item)) {
+                disjoint = false;
+                break;
+            }
+        }
+
+        if (!disjoint) continue;
+
+        for (int b : ch.bins_used) {
+            if (used_bins.count(b)) {
+                disjoint = false;
+                break;
+            }
+        }
+
+        if (!disjoint) continue;
+
+        selected.push_back(ch);
+        used_items.insert(ch.items_used.begin(), ch.items_used.end());
+        used_bins.insert(ch.bins_used.begin(), ch.bins_used.end());
+    }
+
+    if (selected.empty()) {
+        return false;
+    }
+
+    // -------------------- Apply all selected chains on a copy --------------------
+    BPPCSolution candidate = *sol;
+
+    for (const Chain& ch : selected) {
+        int idx = 0;
+        while (idx < (int)ch.path.size()) {
+            if (ch.path[idx].type != NodeType::ITEM) {
+                ++idx;
+                continue;
+            }
+
+            int carried = ch.path[idx].id;
+            int carried_from_bin = candidate.item_bin[carried];
+            candidate.removeItemFromBin(carried, carried_from_bin);
+            ++idx;
+
+            while (idx < (int)ch.path.size()) {
+                if (ch.path[idx].type == NodeType::ITEM) {
+                    int out_item = ch.path[idx].id;
+                    int b = candidate.item_bin[out_item];
+
+                    candidate.removeItemFromBin(out_item, b);
+                    candidate.addItemToBin(carried, b);
+
+                    carried = out_item;
+                    ++idx;
+                } else if (ch.path[idx].type == NodeType::ZERO) {
+                    int b = ch.path[idx].id;
+                    candidate.addItemToBin(carried, b);
+                    ++idx;
+                    break;
+                } else {
+                    ++idx;
+                    break;
+                }
+            }
+        }
+    }
+
+    int old_obj = sol->computeObjective(K1, K2, K3);
+    int new_obj = candidate.computeObjective(K1, K2, K3);
+
+    if (new_obj < old_obj) {
+        *sol = std::move(candidate);
+        return true;
+    }
+
+    return false;
+}
+
+bool LocalSearch::grenade() {
+    if (!sol || sol->bins.size() <= 1) return false;
+
+    const int n_bins = static_cast<int>(sol->bins.size());
+    const int old_obj = sol->computeObjective(K1, K2, K3);
+
+    auto bestInsertionForItem = [&](const BPPCSolution& s, int item, int forbidden_bin,
+                                    int& best_bin, int& best_delta) {
+        best_bin = -1;
+        best_delta = INT_MAX;
+
+        int from_bin = s.item_bin[item];
+        if (from_bin < 0) return false;
+
+        for (int b = 0; b < (int)s.bins.size(); ++b) {
+            if (b == forbidden_bin) continue;
+            if (b == from_bin) continue;
+
+            int delta = s.deltaMove(item, from_bin, b, K1, K2, K3);
+            if (delta < best_delta) {
+                best_delta = delta;
+                best_bin = b;
+            }
+        }
+
+        return best_bin != -1;
+    };
+
+    struct Relocation {
+        int item = -1;
+        int to_bin = -1;
+    };
+
+    // Problematic items = items belonging to bad bins
+    std::vector<int> problematic;
+    std::vector<char> used(sol->N, 0);
+
+    for (int b : sol->bad_bins) {
+        if (b < 0 || b >= n_bins) continue;
+
+        for (int item : sol->bins[b]) {
+            if (!used[item]) {
+                used[item] = 1;
+                problematic.push_back(item);
+            }
+        }
+    }
+
+    std::shuffle(problematic.begin(), problematic.end(), rng);
+
+    for (int k : problematic) {
+        int from_bin_k = sol->item_bin[k];
+        if (from_bin_k < 0) continue;
+
+        int best_total_delta = INT_MAX;
+        int best_target_bin = -1;
+        std::vector<Relocation> best_secondary_moves;
+
+        for (int target_bin = 0; target_bin < n_bins; ++target_bin) {
+            if (target_bin == from_bin_k) continue;
+
+            BPPCSolution tmp = *sol;
+
+            int delta_k = tmp.deltaMove(k, from_bin_k, target_bin, K1, K2, K3);
+            tmp.moveItem(k, from_bin_k, target_bin);
+
+            int total_delta = delta_k;
+            std::vector<Relocation> secondary_moves;
+
+            std::vector<int> conflicting_items;
+            for (int item : tmp.bins[target_bin]) {
+                if (item != k && tmp.hasConflict(k, item)) {
+                    conflicting_items.push_back(item);
+                }
+            }
+
+            std::shuffle(conflicting_items.begin(), conflicting_items.end(), rng);
+
+            bool valid = true;
+
+            for (int i : conflicting_items) {
+                int best_bin_i = -1;
+                int best_delta_i = INT_MAX;
+
+                if (!bestInsertionForItem(tmp, i, target_bin, best_bin_i, best_delta_i)) {
+                    valid = false;
+                    break;
+                }
+
+                secondary_moves.push_back({i, best_bin_i});
+                total_delta += best_delta_i;
+
+                int cur_bin = tmp.item_bin[i];
+                tmp.moveItem(i, cur_bin, best_bin_i);
+            }
+
+            if (!valid) continue;
+
+            if (total_delta < best_total_delta) {
+                best_total_delta = total_delta;
+                best_target_bin = target_bin;
+                best_secondary_moves = secondary_moves;
+            }
+        }
+
+        if (best_target_bin != -1 && best_total_delta < 0) {
+            BPPCSolution backup = *sol;
+
+            int current_from_bin = sol->item_bin[k];
+            sol->moveItem(k, current_from_bin, best_target_bin);
+
+            for (const Relocation& mv : best_secondary_moves) {
+                int cur_bin = sol->item_bin[mv.item];
+                if (cur_bin >= 0 && cur_bin != mv.to_bin) {
+                    sol->moveItem(mv.item, cur_bin, mv.to_bin);
+                }
+            }
+
+            int new_obj = sol->computeObjective(K1, K2, K3);
+            if (new_obj < old_obj) {
+                return true;
+            }
+
+            *sol = std::move(backup);
+        }
+    }
+
+    return false;
+}
+
+// Column generation: Without maximal column cuts
 void LocalSearch::generateColumns() {
     bool verbose = false;
 
-    int N_COLUMNS = 25;
-    int PRICING_ITERS = 12;
-    int SEEDS_PER_ITER = 10;
-    int LOCAL_STEPS = 15;
+    int N_COLUMNS = 1;          // max columns per outer iteration
+    int N_TIMES = 5;            // max number of outer iterations
+    double RMP_TIME_LIMIT = 10.0;
+    double PRICING_TIME_LIMIT = 5.0;
+    const double RC_EPS = 1e-6;
 
     auto log = [&](const std::string& msg) {
         if (verbose) std::cout << msg << "\n";
     };
 
+    auto statusToString = [](int status) -> std::string {
+        switch (status) {
+            case GRB_OPTIMAL:     return "OPTIMAL";
+            case GRB_TIME_LIMIT:  return "TIME_LIMIT";
+            case GRB_INFEASIBLE:  return "INFEASIBLE";
+            case GRB_INTERRUPTED: return "INTERRUPTED";
+            case GRB_UNBOUNDED:   return "UNBOUNDED";
+            default:              return "OTHER(" + std::to_string(status) + ")";
+        }
+    };
+
     const int N = sol->N;
     size_t before = pool.size();
 
-    std::uniform_int_distribution<int> rnd(0, N - 1);
-    std::uniform_real_distribution<double> noise(0.0, 1e-4);
+    if (pool.empty()) {
+        log("[CG] empty pool");
+        return;
+    }
+
+    auto total_start = std::chrono::high_resolution_clock::now();
 
     std::unordered_set<size_t> local_seen;
-    std::vector<double> dual_values(N, 0.0);
+    int total_generated = 0;
+    double total_rmp_time = 0.0;
+    double total_pricing_time = 0.0;
 
-    // ---------------- LP ONCE ----------------
     try {
         GRBEnv env(true);
         env.set("OutputFlag", "0");
         env.start();
 
-        GRBModel model(env);
+        // Pricing model is reused across outer iterations
+        GRBModel pricing(env);
+        pricing.set(GRB_DoubleParam_TimeLimit, PRICING_TIME_LIMIT);
+        pricing.set(GRB_IntParam_MIPFocus, 1);
+        pricing.set(GRB_IntAttr_ModelSense, GRB_MAXIMIZE);
 
-        int n_cols = (int)pool.size();
-        if (n_cols == 0) return;
-
-        std::vector<GRBVar> x(n_cols);
-
-        for (int j = 0; j < n_cols; j++)
-            x[j] = model.addVar(0.0, 1.0, pool[j].col.cost, GRB_CONTINUOUS);
-
-        std::vector<GRBConstr> cover(N);
-
-        for (int i = 0; i < N; i++) {
-            GRBLinExpr expr = 0;
-            for (int j = 0; j < n_cols; j++)
-                if (pool[j].col.mask[i])
-                    expr += x[j];
-
-            cover[i] = model.addConstr(expr >= 1);
+        std::vector<GRBVar> y(N);
+        for (int i = 0; i < N; ++i) {
+            y[i] = pricing.addVar(0.0, 1.0, 0.0, GRB_BINARY);
         }
 
-        model.optimize();
+        GRBLinExpr cap = 0;
+        for (int i = 0; i < N; ++i) {
+            cap += sol->weights[i] * y[i];
+        }
+        pricing.addConstr(cap <= sol->C, "capacity");
 
-        if (model.get(GRB_IntAttr_Status) != GRB_OPTIMAL)
-            return;
+        for (int i = 0; i < N; ++i) {
+            for (int j = i + 1; j < N; ++j) {
+                if (sol->hasConflict(i, j)) {
+                    pricing.addConstr(y[i] + y[j] <= 1,
+                                      "conf_" + std::to_string(i) + "_" + std::to_string(j));
+                }
+            }
+        }
 
-        for (int i = 0; i < N; i++)
-            dual_values[i] = cover[i].get(GRB_DoubleAttr_Pi);
+        pricing.update();
 
+        std::vector<GRBConstr> active_nogoods;
+
+        for (int outer = 0; outer < N_TIMES; ++outer) {
+            log("[CG] outer iteration " + std::to_string(outer + 1) +
+                "/" + std::to_string(N_TIMES));
+
+            std::vector<double> dual_values(N, 0.0);
+
+            // Rebuild RMP on current pool
+            {
+                GRBModel rmp(env);
+                rmp.set(GRB_DoubleParam_TimeLimit, RMP_TIME_LIMIT);
+
+                int n_cols = static_cast<int>(pool.size());
+                std::vector<GRBVar> x(n_cols);
+
+                for (int j = 0; j < n_cols; ++j) {
+                    x[j] = rmp.addVar(0.0, 1.0, pool[j].col.cost, GRB_CONTINUOUS);
+                }
+
+                std::vector<GRBConstr> cover(N);
+
+                for (int i = 0; i < N; ++i) {
+                    GRBLinExpr expr = 0;
+                    for (int j = 0; j < n_cols; ++j) {
+                        if (pool[j].col.mask[i]) expr += x[j];
+                    }
+                    cover[i] = rmp.addConstr(expr >= 1);
+                }
+
+                auto t0 = std::chrono::high_resolution_clock::now();
+                rmp.optimize();
+                auto t1 = std::chrono::high_resolution_clock::now();
+
+                double rmp_time = std::chrono::duration<double>(t1 - t0).count();
+                total_rmp_time += rmp_time;
+
+                int status = rmp.get(GRB_IntAttr_Status);
+                int sol_count = rmp.get(GRB_IntAttr_SolCount);
+                bool optimal = (status == GRB_OPTIMAL);
+
+                log("[CG] RMP status=" + statusToString(status) +
+                    " optimal=" + std::string(optimal ? "yes" : "no") +
+                    " sol_count=" + std::to_string(sol_count) +
+                    " time=" + std::to_string(rmp_time) + " s" +
+                    " n_cols=" + std::to_string(n_cols));
+
+                if (status != GRB_OPTIMAL && status != GRB_TIME_LIMIT) {
+                    log("[CG] stopping: RMP failed");
+                    break;
+                }
+
+                if (sol_count == 0) {
+                    log("[CG] stopping: RMP has no solution");
+                    break;
+                }
+
+                for (int i = 0; i < N; ++i) {
+                    dual_values[i] = cover[i].get(GRB_DoubleAttr_Pi);
+                }
+            }
+
+            // Update pricing objective with fresh duals
+            for (int i = 0; i < N; ++i) {
+                y[i].set(GRB_DoubleAttr_Obj, dual_values[i]);
+                y[i].set(GRB_DoubleAttr_Start, GRB_UNDEFINED);
+            }
+
+            // Remove no-good cuts from previous outer iteration
+            if (!active_nogoods.empty()) {
+                for (GRBConstr c : active_nogoods) {
+                    pricing.remove(c);
+                }
+                active_nogoods.clear();
+                pricing.update();
+            }
+
+            int generated_this_outer = 0;
+            bool found_negative_rc = false;
+
+            while (generated_this_outer < N_COLUMNS) {
+                auto t0 = std::chrono::high_resolution_clock::now();
+                pricing.optimize();
+                auto t1 = std::chrono::high_resolution_clock::now();
+
+                double mip_time = std::chrono::duration<double>(t1 - t0).count();
+                total_pricing_time += mip_time;
+
+                int status = pricing.get(GRB_IntAttr_Status);
+                int sol_count = pricing.get(GRB_IntAttr_SolCount);
+                bool optimal = (status == GRB_OPTIMAL);
+
+                log("[CG] Pricing status=" + statusToString(status) +
+                    " optimal=" + std::string(optimal ? "yes" : "no") +
+                    " sol_count=" + std::to_string(sol_count) +
+                    " time=" + std::to_string(mip_time) + " s" +
+                    " outer=" + std::to_string(outer + 1) +
+                    " generated_in_outer=" + std::to_string(generated_this_outer));
+
+                if ((status != GRB_OPTIMAL && status != GRB_TIME_LIMIT) || sol_count == 0) {
+                    log("[CG] stopping pricing: no pricing solution");
+                    break;
+                }
+
+                std::vector<int> items;
+                items.reserve(N);
+
+                double dual_sum = 0.0;
+                for (int i = 0; i < N; ++i) {
+                    if (y[i].get(GRB_DoubleAttr_X) > 0.5) {
+                        items.push_back(i);
+                        dual_sum += dual_values[i];
+                    }
+                }
+
+                if (items.empty()) {
+                    log("[CG] stopping pricing: empty column");
+                    break;
+                }
+
+                std::sort(items.begin(), items.end());
+                size_t h = hashBin(items);
+
+                double rc = K1 - dual_sum;
+
+                log("[CG] column size=" + std::to_string(items.size()) +
+                    " dual_sum=" + std::to_string(dual_sum) +
+                    " rc=" + std::to_string(rc) +
+                    " proven_by_optimality=" + std::string(optimal ? "yes" : "no"));
+
+                if (rc >= -RC_EPS) {
+                    log("[CG] stopping pricing: no negative reduced-cost column");
+                    break;
+                }
+
+                found_negative_rc = true;
+
+                if (!local_seen.count(h)) {
+                    local_seen.insert(h);
+
+                    Column col;
+                    col.items = items;
+                    col.buildMask(N);
+                    col.cost = K1;
+
+                    addColumn(std::move(col), N);
+                    ++generated_this_outer;
+                    ++total_generated;
+
+                    log("[CG] added column, total_generated=" + std::to_string(total_generated));
+                } else {
+                    log("[CG] duplicate column skipped");
+                }
+
+                GRBLinExpr nogood = 0;
+                std::vector<char> in_col(N, false);
+                for (int i : items) in_col[i] = true;
+
+                for (int i = 0; i < N; ++i) {
+                    if (in_col[i]) nogood += (1 - y[i]);
+                    else           nogood += y[i];
+                }
+
+                GRBConstr cut = pricing.addConstr(nogood >= 1);
+                active_nogoods.push_back(cut);
+                pricing.update();
+            }
+
+            log("[CG] outer iteration result: generated_this_outer=" +
+                std::to_string(generated_this_outer));
+
+            if (!found_negative_rc) {
+                log("[CG] stopping outer loop: no negative reduced-cost column found");
+                break;
+            }
+
+            if (generated_this_outer == 0) {
+                log("[CG] stopping outer loop: no new columns added");
+                break;
+            }
+        }
+
+    } catch (GRBException& e) {
+        log("[CG] Gurobi error: " + std::string(e.getMessage()));
+        return;
     } catch (...) {
+        log("[CG] unknown error");
         return;
     }
 
-    // ---------------- COST ----------------
-    auto reducedCost = [&](const std::vector<int>& items) {
-        double dual_sum = 0.0;
-        int load = 0;
-        int conflicts = 0;
+    auto total_end = std::chrono::high_resolution_clock::now();
+    double total_time = std::chrono::duration<double>(total_end - total_start).count();
 
-        for (int i = 0; i < (int)items.size(); i++) {
-            int u = items[i];
-            dual_sum += dual_values[u];
-            load += sol->weights[u];
-
-            for (int j = i + 1; j < (int)items.size(); j++)
-                if (sol->hasConflict(u, items[j]))
-                    conflicts++;
-        }
-
-        int excess = std::max(0, load - sol->C);
-        double cost = K1 + K2 * excess + K3 * conflicts;
-
-        return cost - dual_sum;
-    };
-
-    auto evaluate = [&](const std::vector<int>& items) {
-        return reducedCost(items);
-    };
-
-    // ---------------- TRY ADD ----------------
-    auto try_add = [&](const std::vector<int>& items) {
-        if (items.size() < 2) return false;
-
-        size_t h = hash_bin(items);
-        if (local_seen.count(h)) return false;
-        local_seen.insert(h);
-
-        Column col;
-        col.items = items;
-        col.buildMask(N);
-
-        int load = 0;
-        int conflicts = 0;
-
-        for (int i = 0; i < (int)items.size(); i++) {
-            load += sol->weights[items[i]];
-            for (int j = i + 1; j < (int)items.size(); j++)
-                if (sol->hasConflict(items[i], items[j]))
-                    conflicts++;
-        }
-
-        int excess = std::max(0, load - sol->C);
-        col.cost = K1 + K2 * excess + K3 * conflicts;
-
-        addColumn(std::move(col), N);
-        return true;
-    };
-
-    // ---------------- LOCAL SEARCH ----------------
-    auto improve = [&](std::vector<int>& items) {
-
-        std::vector<char> used(N, false);
-        int load = 0;
-
-        for (int i : items) {
-            used[i] = true;
-            load += sol->weights[i];
-        }
-
-        for (int step = 0; step < LOCAL_STEPS; step++) {
-
-            bool improved = false;
-
-            // --- TRY ADD ---
-            for (int t = 0; t < 20; t++) {
-
-                int i = rnd(rng);
-                if (used[i]) continue;
-
-                if (load + sol->weights[i] > sol->C)
-                    continue;
-
-                const auto& row = sol->conflicts[i];
-                bool ok = true;
-
-                for (int j : items) {
-                    if (row[j >> 6] & (1ULL << (j & 63))) {
-                        ok = false;
-                        break;
-                    }
-                }
-
-                if (!ok) continue;
-
-                double gain = dual_values[i];
-
-                if (gain > 0) {
-                    items.push_back(i);
-                    used[i] = true;
-                    load += sol->weights[i];
-                    improved = true;
-                    break;
-                }
-            }
-
-            if (improved) continue;
-
-            // --- TRY REMOVE WORST ---
-            int worst_pos = -1;
-            double worst_gain = 1e18;
-
-            for (int i = 0; i < (int)items.size(); i++) {
-                int u = items[i];
-                double g = dual_values[u];
-
-                if (g < worst_gain) {
-                    worst_gain = g;
-                    worst_pos = i;
-                }
-            }
-
-            if (worst_pos != -1 && worst_gain < 0) {
-                int u = items[worst_pos];
-                load -= sol->weights[u];
-                used[u] = false;
-                items.erase(items.begin() + worst_pos);
-                improved = true;
-            }
-
-            if (!improved)
-                break;
-        }
-    };
-
-    // ---------------- MAIN LOOP ----------------
-    int generated = 0;
-
-    for (int it = 0; it < PRICING_ITERS; it++) {
-
-        for (int seed_try = 0; seed_try < SEEDS_PER_ITER; seed_try++) {
-
-            std::vector<int> items;
-            std::vector<char> used(N, false);
-            int load = 0;
-
-            // --- greedy seed construction ---
-            for (int step = 0; step < 50; step++) {
-
-                int best = -1;
-                double best_score = 0;
-
-                for (int i = 0; i < N; i++) {
-
-                    if (used[i]) continue;
-                    if (load + sol->weights[i] > sol->C) continue;
-
-                    const auto& row = sol->conflicts[i];
-                    bool ok = true;
-
-                    for (int j : items) {
-                        if (row[j >> 6] & (1ULL << (j & 63))) {
-                            ok = false;
-                            break;
-                        }
-                    }
-
-                    if (!ok) continue;
-
-                    double score = dual_values[i] + noise(rng);
-
-                    if (score > best_score) {
-                        best_score = score;
-                        best = i;
-                    }
-                }
-
-                if (best == -1)
-                    break;
-
-                items.push_back(best);
-                used[best] = true;
-                load += sol->weights[best];
-            }
-
-            if (items.empty())
-                continue;
-
-            // --- LOCAL IMPROVEMENT ---
-            improve(items);
-
-            double rc = evaluate(items);
-
-            if (rc < -1e-6) {
-                if (try_add(items)) {
-                    generated++;
-                    if (generated >= N_COLUMNS)
-                        break;
-                }
-            }
-        }
-
-        if (generated >= N_COLUMNS)
-            break;
-    }
-
-    log("[CG] added=" + std::to_string(pool.size() - before));
+    log("[CG] total_generated=" + std::to_string(total_generated));
+    log("[CG] pool_added=" + std::to_string(pool.size() - before));
+    log("[CG] total_rmp_time=" + std::to_string(total_rmp_time) + " s");
+    log("[CG] total_pricing_time=" + std::to_string(total_pricing_time) + " s");
+    log("[CG] total_function_time=" + std::to_string(total_time) + " s");
     log("[CG] pool_after=" + std::to_string(pool.size()));
 
     trimPool();
 }
 
+// Column generation: With maximal column cuts
+// void LocalSearch::generateColumns() {
+//     bool verbose = true;
+
+//     int N_COLUMNS = 1;
+//     int N_TIMES = 10;
+//     double RMP_TIME_LIMIT = 10.0;
+//     double PRICING_TIME_LIMIT = 5.0;
+//     const double RC_EPS = 1e-6;
+
+//     auto log = [&](const std::string& msg) {
+//         if (verbose) std::cout << msg << "\n";
+//     };
+
+//     auto statusToString = [](int status) -> std::string {
+//         switch (status) {
+//             case GRB_OPTIMAL:     return "OPTIMAL";
+//             case GRB_TIME_LIMIT:  return "TIME_LIMIT";
+//             case GRB_INFEASIBLE:  return "INFEASIBLE";
+//             case GRB_INTERRUPTED: return "INTERRUPTED";
+//             case GRB_UNBOUNDED:   return "UNBOUNDED";
+//             default:              return "OTHER(" + std::to_string(status) + ")";
+//         }
+//     };
+
+//     const int N = sol->N;
+//     size_t before = pool.size();
+
+//     if (pool.empty()) {
+//         log("[CG] empty pool");
+//         return;
+//     }
+
+//     auto total_start = std::chrono::high_resolution_clock::now();
+
+//     std::unordered_set<size_t> local_seen;
+//     int total_generated = 0;
+//     double total_rmp_time = 0.0;
+//     double total_pricing_time = 0.0;
+
+//     try {
+//         GRBEnv env(true);
+//         env.set("OutputFlag", "0");
+//         env.start();
+
+//         for (int outer = 0; outer < N_TIMES; ++outer) {
+//             log("[CG] outer iteration " + std::to_string(outer + 1) +
+//                 "/" + std::to_string(N_TIMES));
+
+//             std::vector<double> dual_values(N, 0.0);
+
+//             {
+//                 GRBModel rmp(env);
+//                 rmp.set(GRB_DoubleParam_TimeLimit, RMP_TIME_LIMIT);
+
+//                 int n_cols = static_cast<int>(pool.size());
+//                 std::vector<GRBVar> x(n_cols);
+
+//                 for (int j = 0; j < n_cols; ++j) {
+//                     x[j] = rmp.addVar(0.0, 1.0, pool[j].col.cost, GRB_CONTINUOUS);
+//                 }
+
+//                 std::vector<GRBConstr> cover(N);
+
+//                 for (int i = 0; i < N; ++i) {
+//                     GRBLinExpr expr = 0;
+//                     for (int j = 0; j < n_cols; ++j) {
+//                         if (pool[j].col.mask[i]) expr += x[j];
+//                     }
+//                     cover[i] = rmp.addConstr(expr >= 1);
+//                 }
+
+//                 auto t0 = std::chrono::high_resolution_clock::now();
+//                 rmp.optimize();
+//                 auto t1 = std::chrono::high_resolution_clock::now();
+
+//                 double rmp_time = std::chrono::duration<double>(t1 - t0).count();
+//                 total_rmp_time += rmp_time;
+
+//                 int status = rmp.get(GRB_IntAttr_Status);
+//                 int sol_count = rmp.get(GRB_IntAttr_SolCount);
+//                 bool optimal = (status == GRB_OPTIMAL);
+
+//                 log("[CG] RMP status=" + statusToString(status) +
+//                     " optimal=" + std::string(optimal ? "yes" : "no") +
+//                     " sol_count=" + std::to_string(sol_count) +
+//                     " time=" + std::to_string(rmp_time) + " s" +
+//                     " n_cols=" + std::to_string(n_cols));
+
+//                 if (status != GRB_OPTIMAL && status != GRB_TIME_LIMIT) {
+//                     log("[CG] stopping: RMP failed");
+//                     break;
+//                 }
+
+//                 if (sol_count == 0) {
+//                     log("[CG] stopping: RMP has no solution");
+//                     break;
+//                 }
+
+//                 for (int i = 0; i < N; ++i) {
+//                     dual_values[i] = cover[i].get(GRB_DoubleAttr_Pi);
+//                 }
+//             }
+
+//             GRBModel pricing(env);
+//             pricing.set(GRB_DoubleParam_TimeLimit, PRICING_TIME_LIMIT);
+//             pricing.set(GRB_IntParam_MIPFocus, 1);
+//             pricing.set(GRB_IntAttr_ModelSense, GRB_MAXIMIZE);
+
+//             std::vector<GRBVar> y(N);
+//             for (int i = 0; i < N; ++i) {
+//                 y[i] = pricing.addVar(0.0, 1.0, dual_values[i], GRB_BINARY);
+//             }
+
+//             GRBLinExpr cap = 0;
+//             for (int i = 0; i < N; ++i) {
+//                 cap += sol->weights[i] * y[i];
+//             }
+//             pricing.addConstr(cap <= sol->C, "capacity");
+
+//             for (int i = 0; i < N; ++i) {
+//                 for (int j = i + 1; j < N; ++j) {
+//                     if (sol->hasConflict(i, j)) {
+//                         pricing.addConstr(y[i] + y[j] <= 1,
+//                                           "conf_" + std::to_string(i) + "_" + std::to_string(j));
+//                     }
+//                 }
+//             }
+
+//             int subset_cut_count = 0;
+//             for (int c = 0; c < static_cast<int>(pool.size()); ++c) {
+//                 GRBLinExpr forbid_subset = 0;
+
+//                 for (int i = 0; i < N; ++i) {
+//                     if (!pool[c].col.mask[i]) {
+//                         forbid_subset += y[i];
+//                     }
+//                 }
+
+//                 pricing.addConstr(
+//                     forbid_subset >= 1,
+//                     "nonsubset_" + std::to_string(c)
+//                 );
+//                 ++subset_cut_count;
+//             }
+
+//             pricing.update();
+
+//             log("[CG] pricing subset cuts added=" + std::to_string(subset_cut_count));
+
+//             int generated_this_outer = 0;
+//             bool found_negative_rc = false;
+//             std::vector<GRBConstr> active_nogoods;
+
+//             while (generated_this_outer < N_COLUMNS) {
+//                 auto t0 = std::chrono::high_resolution_clock::now();
+//                 pricing.optimize();
+//                 auto t1 = std::chrono::high_resolution_clock::now();
+
+//                 double mip_time = std::chrono::duration<double>(t1 - t0).count();
+//                 total_pricing_time += mip_time;
+
+//                 int status = pricing.get(GRB_IntAttr_Status);
+//                 int sol_count = pricing.get(GRB_IntAttr_SolCount);
+//                 bool optimal = (status == GRB_OPTIMAL);
+
+//                 log("[CG] Pricing status=" + statusToString(status) +
+//                     " optimal=" + std::string(optimal ? "yes" : "no") +
+//                     " sol_count=" + std::to_string(sol_count) +
+//                     " time=" + std::to_string(mip_time) + " s" +
+//                     " outer=" + std::to_string(outer + 1) +
+//                     " generated_in_outer=" + std::to_string(generated_this_outer));
+
+//                 if ((status != GRB_OPTIMAL && status != GRB_TIME_LIMIT) || sol_count == 0) {
+//                     log("[CG] stopping pricing: no pricing solution");
+//                     break;
+//                 }
+
+//                 std::vector<int> items;
+//                 items.reserve(N);
+
+//                 double dual_sum = 0.0;
+//                 for (int i = 0; i < N; ++i) {
+//                     if (y[i].get(GRB_DoubleAttr_X) > 0.5) {
+//                         items.push_back(i);
+//                         dual_sum += dual_values[i];
+//                     }
+//                 }
+
+//                 if (items.empty()) {
+//                     log("[CG] stopping pricing: empty column");
+//                     break;
+//                 }
+
+//                 std::sort(items.begin(), items.end());
+//                 size_t h = hashBin(items);
+
+//                 double rc = K1 - dual_sum;
+
+//                 log("[CG] column size=" + std::to_string(items.size()) +
+//                     " dual_sum=" + std::to_string(dual_sum) +
+//                     " rc=" + std::to_string(rc) +
+//                     " proven_by_optimality=" + std::string(optimal ? "yes" : "no"));
+
+//                 if (rc >= -RC_EPS) {
+//                     log("[CG] stopping pricing: no negative reduced-cost column");
+//                     break;
+//                 }
+
+//                 found_negative_rc = true;
+
+//                 if (!local_seen.count(h)) {
+//                     local_seen.insert(h);
+
+//                     Column col;
+//                     col.items = items;
+//                     col.buildMask(N);
+//                     col.cost = K1;
+
+//                     addColumn(std::move(col), N);
+//                     ++generated_this_outer;
+//                     ++total_generated;
+
+//                     log("[CG] added column, total_generated=" + std::to_string(total_generated));
+//                 } else {
+//                     log("[CG] duplicate column skipped");
+//                 }
+
+//                 GRBLinExpr nogood = 0;
+//                 std::vector<char> in_col(N, false);
+//                 for (int i : items) in_col[i] = true;
+
+//                 for (int i = 0; i < N; ++i) {
+//                     if (in_col[i]) nogood += (1 - y[i]);
+//                     else           nogood += y[i];
+//                 }
+
+//                 GRBConstr cut = pricing.addConstr(nogood >= 1);
+//                 active_nogoods.push_back(cut);
+//                 pricing.update();
+//             }
+
+//             log("[CG] outer iteration result: generated_this_outer=" +
+//                 std::to_string(generated_this_outer));
+
+//             if (!found_negative_rc) {
+//                 log("[CG] stopping outer loop: no negative reduced-cost column found");
+//                 break;
+//             }
+
+//             if (generated_this_outer == 0) {
+//                 log("[CG] stopping outer loop: no new columns added");
+//                 break;
+//             }
+//         }
+
+//     } catch (GRBException& e) {
+//         log("[CG] Gurobi error: " + std::string(e.getMessage()));
+//         return;
+//     } catch (...) {
+//         log("[CG] unknown error");
+//         return;
+//     }
+
+//     auto total_end = std::chrono::high_resolution_clock::now();
+//     double total_time = std::chrono::duration<double>(total_end - total_start).count();
+
+//     log("[CG] total_generated=" + std::to_string(total_generated));
+//     log("[CG] pool_added=" + std::to_string(pool.size() - before));
+//     log("[CG] total_rmp_time=" + std::to_string(total_rmp_time) + " s");
+//     log("[CG] total_pricing_time=" + std::to_string(total_pricing_time) + " s");
+//     log("[CG] total_function_time=" + std::to_string(total_time) + " s");
+//     log("[CG] pool_after=" + std::to_string(pool.size()));
+
+//     trimPool();
+// }

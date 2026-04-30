@@ -6,6 +6,7 @@
 #include <random>
 
 class QRVND {
+    friend class AILS;
 private:
     BPPCSolution* sol;
     LocalSearch ls;
@@ -25,6 +26,11 @@ private:
 
     int selectPermutation(int current_p);
     bool applyOrder(const std::vector<int>& order);
+    std::vector<std::vector<int>> generatePermutations(int n);
+    void backtrack(int n,
+                   std::vector<int>& current,
+                   std::vector<bool>& used,
+                   std::vector<std::vector<int>>& perms);
 
 public:
     QRVND(BPPCSolution& solution, ImprovementType improvement, int k1, int k2, int k3,

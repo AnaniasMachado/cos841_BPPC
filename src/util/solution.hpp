@@ -16,6 +16,7 @@ class BPPCSolution {
     friend class Perturbations;
     friend class AILS;
     friend class ExperimentRunner;
+    friend class ILS;
 public:
     using Bin = std::vector<int>;
     using Bitset = std::vector<uint64_t>;

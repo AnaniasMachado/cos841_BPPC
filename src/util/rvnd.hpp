@@ -7,6 +7,7 @@
 #include <random>
 
 class RVND {
+    friend class AILS;
 private:
     BPPCSolution* sol;
     LocalSearch ls;

@@ -1,0 +1,77 @@
+# Objective: 73
+# Time: 0.0162082
+# Feasible: 1
+# Solution:
+Bin 0: 105 
+Bin 1: 115 
+Bin 2: 60 27 29 43 26 31 
+Bin 3: 76 28 
+Bin 4: 24 
+Bin 5: 38 42 
+Bin 6: 96 44 46 
+Bin 7: 32 
+Bin 8: 1 106 17 33 119 
+Bin 9: 108 6 52 98 
+Bin 10: 95 72 
+Bin 11: 30 
+Bin 12: 10 
+Bin 13: 14 8 41 58 
+Bin 14: 69 
+Bin 15: 23 
+Bin 16: 55 
+Bin 17: 48 
+Bin 18: 7 
+Bin 19: 113 
+Bin 20: 83 
+Bin 21: 65 9 103 34 12 112 75 
+Bin 22: 47 
+Bin 23: 99 25 87 66 35 
+Bin 24: 11 13 
+Bin 25: 21 89 
+Bin 26: 56 67 
+Bin 27: 40 
+Bin 28: 91 
+Bin 29: 61 86 
+Bin 30: 18 107 
+Bin 31: 71 16 68 
+Bin 32: 104 
+Bin 33: 74 22 81 84 3 
+Bin 34: 78 
+Bin 35: 49 62 
+Bin 36: 92 63 
+Bin 37: 77 
+Bin 38: 93 
+Bin 39: 80 
+Bin 40: 4 90 2 
+Bin 41: 94 
+Bin 42: 97 
+Bin 43: 118 
+Bin 44: 50 73 
+Bin 45: 102 82 
+Bin 46: 111 
+Bin 47: 51 
+Bin 48: 0 
+Bin 49: 101 
+Bin 50: 109 
+Bin 51: 117 
+Bin 52: 5 
+Bin 53: 100 
+Bin 54: 39 
+Bin 55: 114 
+Bin 56: 36 
+Bin 57: 88 
+Bin 58: 20 
+Bin 59: 110 
+Bin 60: 37 
+Bin 61: 116 
+Bin 62: 19 
+Bin 63: 53 
+Bin 64: 79 
+Bin 65: 70 
+Bin 66: 45 
+Bin 67: 54 
+Bin 68: 85 
+Bin 69: 64 
+Bin 70: 15 
+Bin 71: 59 
+Bin 72: 57 
